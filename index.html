@@ -187,6 +187,20 @@ button.row:active{background:var(--surface-2)}
 .qa-desc{margin:10px 0 14px; font-size:13.5px; color:#D5CFC5; white-space:pre-wrap}
 .qa-body .opt{background:var(--surface-2)}
 .qa-body .submit{margin-top:16px}
+.acc-head{display:flex; align-items:center; gap:10px; margin-bottom:12px}
+.acc-head h2{margin:0; font-weight:500; font-size:16px; letter-spacing:.04em; color:var(--text)}
+.acc-head .meta{font-size:12px; color:var(--text-dim); font-variant-numeric:tabular-nums}
+.acc-head .sp{flex:1}
+.accbtn{width:40px; height:40px; background:none; border:0; color:var(--text-dim);
+  font:inherit; font-size:12px; cursor:pointer}
+.notice-text{padding:14px; background:var(--surface); border-radius:4px;
+  font-size:14px; color:#DCD6CC; white-space:pre-wrap; line-height:1.8}
+#notice-body textarea{width:100%; padding:12px; background:var(--surface);
+  border:1px solid var(--rule); border-radius:4px; color:var(--text);
+  font:inherit; font-size:14px; line-height:1.8; resize:vertical}
+#notice-body .acts{display:flex; align-items:center; gap:8px; margin-top:9px}
+.counter{margin-right:auto; font-size:11.5px; color:var(--text-dim);
+  font-variant-numeric:tabular-nums}
 :focus-visible{outline:2px solid var(--gold); outline-offset:2px}
 </style>
 
@@ -219,6 +233,17 @@ button.row:active{background:var(--surface-2)}
 
     <section class="screen" id="s-home">
       <div class="sec">
+        <div class="acc-head">
+          <h2>お知らせ</h2>
+          <span class="meta" id="notice-at"></span>
+          <span class="sp"></span>
+          <button class="mini" id="notice-edit" onclick="editNotice()" hidden>編集</button>
+          <button class="accbtn" id="notice-toggle" onclick="toggleSec('notice')">▲</button>
+        </div>
+        <div id="notice-body"></div>
+      </div>
+
+      <div class="sec">
         <div class="sec-head"><h2>今日の予定</h2></div>
         <div class="stack">
           <div class="row"><div class="at">21:00</div><div class="body"><div class="ttl">ベアトラップ</div></div></div>
@@ -228,9 +253,11 @@ button.row:active{background:var(--surface-2)}
       </div>
 
       <div class="sec">
-        <div class="sec-head"><h2>ST防衛</h2><span class="meta">本日分</span></div>
-        <div class="stack" id="home-st"></div>
-        <p class="empty" id="home-st-empty" hidden>本日の防衛はありません</p>
+        <div class="acc-head"><h2>ST防衛</h2><span class="meta">本日分</span><span class="sp"></span><button class="accbtn" id="st-toggle" onclick="toggleSec('st')">▲</button></div>
+        <div id="st-wrap">
+          <div class="stack" id="home-st"></div>
+          <p class="empty" id="home-st-empty" hidden>本日の防衛はありません</p>
+        </div>
       </div>
 
       <div class="sec">
@@ -420,6 +447,7 @@ function enter(){ $("#s-login").hidden = true; $("#app").hidden = false; scrollT
 
 function go(name){
   screenName = name;
+  if (name !== "home") noticeEditing = false;
   if (name !== "st"){ manage = false; editing = -1; }
   ["home","sched","st","poll","polldetail","admin"].forEach(function(k){
     var el = $("#s-" + k); if (el) el.hidden = (k !== name);
@@ -429,6 +457,8 @@ function go(name){
     if (on) b.setAttribute("aria-current","page"); else b.removeAttribute("aria-current");
   });
   renderST();
+  renderNotice();
+  renderSTSection();
   scrollTo(0,0);
 }
 
@@ -659,6 +689,69 @@ function sendHome(id){
   renderPolls();
 }
 
+var NOTICE = {
+  text: "今週の同盟決戦は 10/16（木）21:00 開始です。参加希望のアンケートに必ず回答してください。\n\nST防衛の担当者へ：解放時刻の更新が遅れると同盟全体に影響します。気づいた時点で更新をお願いします。\n\n新しく加入した方は、ゲーム内のキャラ名とこのアプリの登録名を必ず一致させてください。",
+  at: Date.now() - 3*3600e3
+};
+var openSec = { notice: true, st: true };
+var noticeEditing = false;
+
+function fmtAt(t){
+  var d = new Date(t);
+  return (d.getMonth()+1) + "/" + d.getDate() + " " + p2(d.getHours()) + ":" + p2(d.getMinutes());
+}
+
+function renderNotice(){
+  $("#notice-at").textContent = fmtAt(NOTICE.at);
+  $("#notice-edit").hidden = (!isAdmin || noticeEditing);
+  $("#notice-toggle").textContent = openSec.notice ? "▲" : "▼";
+  var body = $("#notice-body");
+  body.hidden = !openSec.notice;
+  if (noticeEditing){
+    body.innerHTML =
+      '<textarea id="ntext" maxlength="2000" rows="9" oninput="countNotice()"></textarea>' +
+      '<div class="acts">' +
+        '<span class="counter" id="ncount"></span>' +
+        '<button class="mini" onclick="cancelNotice()">キャンセル</button>' +
+        '<button class="mini ok" onclick="saveNotice()">保存</button>' +
+      '</div>';
+    $("#ntext").value = NOTICE.text;
+    countNotice();
+  } else {
+    body.innerHTML = '<div class="notice-text">' + esc(NOTICE.text) + '</div>';
+  }
+}
+
+function renderSTSection(){
+  $("#st-wrap").hidden = !openSec.st;
+  $("#st-toggle").textContent = openSec.st ? "▲" : "▼";
+}
+
+function toggleSec(k){
+  openSec[k] = !openSec[k];
+  if (k === "notice") renderNotice(); else renderSTSection();
+}
+
+function editNotice(){
+  noticeEditing = true;
+  openSec.notice = true;
+  renderNotice();
+  var f = $("#ntext"); if (f) f.focus();
+}
+
+function cancelNotice(){ noticeEditing = false; renderNotice(); }
+
+function countNotice(){
+  $("#ncount").textContent = $("#ntext").value.length + " / 2000";
+}
+
+function saveNotice(){
+  NOTICE.text = $("#ntext").value;
+  NOTICE.at = Date.now();
+  noticeEditing = false;
+  renderNotice();
+}
+
 function renderPending(){
   $("#pending").innerHTML = PENDING.map(function(p,i){
     return '<div class="card alert"><div style="font-size:17px">' + esc(p.n) + '</div>' +
@@ -691,6 +784,8 @@ function tick(){
 renderPolls();
 renderPending();
 renderTabs();
+renderNotice();
+renderSTSection();
 tick();
 setInterval(tick, 1000);
 </script>
