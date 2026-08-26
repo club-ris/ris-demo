@@ -100,7 +100,7 @@ button.row:active{background:var(--surface-2)}
 .edit input{width:46px; padding:8px 4px; text-align:center;
   background:var(--ground); border:1px solid var(--rule); border-radius:3px;
   color:var(--text); font:inherit; font-size:15px; font-variant-numeric:tabular-nums}
-.edit .mini{margin-left:auto}
+.st.hl{outline:1px solid var(--gold); outline-offset:-1px}
 
 /* ---- login ---- */
 .login{min-height:100dvh; display:flex; flex-direction:column; align-items:center;
@@ -382,6 +382,7 @@ var PENDING = [
 var isAdmin = true;
 var manage  = false;
 var editing = -1;
+var justUpdated = -1;
 var screenName = "home";
 var picked = new Set();
 
@@ -452,19 +453,22 @@ function stRow(i, held){
   var cd = held ? '<div class="cd" data-e="' + i + '">' + fmt(s.e - Date.now()) + '</div>' : "";
   var head = '<div class="line1"><div class="body"><div class="ttl">' + esc(s.n) +
              '</div><div class="sub">' + esc(s.b) + '</div></div>' + cd + '</div>';
+  var cls = '<div class="st' + (justUpdated === i ? ' hl' : '') + '" data-hl="' + i + '">';
 
   if (editing === i){
-    return '<div class="st">' + head +
+    return cls + head +
       '<div class="edit">' +
         '<label><input type="number" inputmode="numeric" min="0" max="9" value="0" id="ed"> 日</label>' +
         '<label><input type="number" inputmode="numeric" min="0" max="23" value="0" id="eh"> 時間</label>' +
         '<label><input type="number" inputmode="numeric" min="0" max="59" value="0" id="em"> 分</label>' +
+      '</div><div class="acts">' +
+        '<button class="mini" onclick="cancelEdit()">キャンセル</button>' +
         '<button class="mini ok" onclick="commit(' + i + ')">決定</button>' +
       '</div></div>';
   }
-  if (!manage) return '<div class="st">' + head + '</div>';
+  if (!manage) return cls + head + '</div>';
 
-  return '<div class="st">' + head + '<div class="acts">' +
+  return cls + head + '<div class="acts">' +
     '<button class="mini go" onclick="startEdit(' + i + ')">更新</button>' +
     (held ? '<button class="mini" onclick="release(' + i + ')">未占領</button>' : "") +
     '</div></div>';
@@ -503,8 +507,14 @@ function commit(i){
   var ms = (v("ed")*86400 + v("eh")*3600 + v("em")*60) * 1000;
   ST[i].e = (ms <= 0) ? null : Date.now() + ms;
   editing = -1;
+  justUpdated = i;
   renderST();
+  var el = document.querySelector('[data-hl="' + i + '"]');
+  if (el && el.scrollIntoView) el.scrollIntoView({block:"center"});
+  setTimeout(function(){ if (justUpdated === i){ justUpdated = -1; renderST(); } }, 2500);
 }
+
+function cancelEdit(){ editing = -1; renderST(); }
 
 function pollCard(p){
   return '<button class="row" style="align-items:flex-start" onclick="openPoll(\'' + p.id + '\')">' +
