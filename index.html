@@ -908,7 +908,7 @@ function homePollItem(p){
     h += '<div class="qa-body">' +
       '<div class="qa-meta">終了 ' + dueText(p) + '</div>' +
       '<p class="qa-desc">' + esc(p.d) + '</p>' +
-      (p.anon ? '<p class="anonnote" style="margin:0 0 12px">匿名のため、送信すると変更できません。</p>' : "") +
+      (p.anon ? '<p class="anonnote" style="margin:0 0 12px">匿名のため、回答すると変更できません。</p>' : "") +
       '<div class="stack" id="hopts">' + optionsHtml(p, "hopt") + '</div>' +
 
       '<button class="submit" id="hsend" disabled onclick="sendAnswer(' + p.id + ',true)">回答する</button>' +
@@ -1008,7 +1008,7 @@ function renderDetail(){
     '<div class="dline"><span>終了日時 ' + dueText(p) + '</span><span class="sp"></span>' +
       '<button class="mini" onclick="pdShow(\x27result\x27)">集計状況</button></div>' +
     '<p class="desc">' + esc(p.d) + '</p>' +
-    (p.anon ? '<p class="anonnote">匿名のため、送信すると変更できません。</p>' : "") +
+    (p.anon ? '<p class="anonnote">匿名のため、回答すると変更できません。</p>' : "") +
     '<div class="stack" style="margin-top:16px" id="dopts">' + optionsHtml(p, "dopt") + '</div>' +
     (p.anon ? "" : '<p class="hint2" style="margin-top:12px">締切前なら何度でも変更できます。</p>') +
     '<button class="submit" id="dsend" disabled onclick="sendAnswer(' + p.id + ',false)">' +
