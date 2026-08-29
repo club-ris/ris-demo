@@ -849,7 +849,10 @@ var picked = new Set();
 })();
 
 function pollExpired(p){ return p.due <= Date.now(); }
-function pollOpenList(){ return POLLS.filter(function(p){ return !p.answered && !pollExpired(p); }); }
+function pollOpenList(){
+  return POLLS.filter(function(p){ return !p.answered && !pollExpired(p); })
+              .sort(function(a,b){ return a.due - b.due; });
+}
 function pollPastList(){
   return POLLS.filter(function(p){ return p.answered || pollExpired(p); })
               .sort(function(a,b){ return b.due - a.due; });
