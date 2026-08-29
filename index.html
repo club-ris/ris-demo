@@ -262,6 +262,12 @@ button.ev:active{background:var(--surface-2)}
 .hint2{margin:0; font-size:11.5px; color:var(--gold-bright)}
 
 /* ---- 名前変更モーダル ---- */
+.pl1{display:flex; align-items:center; gap:8px}
+.pl1 .pt{flex:1; min-width:0; font-size:15px; line-height:1.35;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.pl1 h3{margin:0}
+.tag.anon{color:#B49DD8; border-color:#3A3050}
+.qa-head .tag{flex:0 0 auto}
 .optrow{display:flex; align-items:center; gap:8px}
 .optrow .u{flex:0 0 14px; text-align:right}
 .optrow input{flex:1; min-width:0}
@@ -476,12 +482,16 @@ button.ev:active{background:var(--surface-2)}
     </section>
 
     <section class="screen" id="s-poll" hidden>
+      <div class="sec" id="poll-createrow" style="padding-bottom:0" hidden>
+        <div class="acc-head" style="margin-bottom:0"><span class="sp"></span>
+          <button class="mini" onclick="openPollForm()">作成</button>
+        </div>
+      </div>
       <div class="sec">
         <div class="acc-head">
           <h2>過去のアンケート</h2>
           <span class="meta" id="past-count"></span>
           <span class="sp"></span>
-          <button class="mini" id="poll-create" onclick="openPollForm()" hidden>作成</button>
           <button class="accbtn" id="past-toggle" onclick="togglePast()">▼</button>
         </div>
         <div id="past-wrap" hidden>
@@ -498,7 +508,7 @@ button.ev:active{background:var(--surface-2)}
     </section>
 
     <section class="screen" id="s-polldetail" hidden>
-      <button class="back" onclick="go('poll')">← 戻る</button>
+      <button class="back" onclick="pdBack()">← 戻る</button>
       <div class="detail" id="pd"></div>
     </section>
 
@@ -851,16 +861,27 @@ function totalOf(p){ return p.cnt.reduce(function(a,b){ return a+b; }, 0); }
 
 /* --- 一覧のカード --- */
 function pollCard(p){
-  var tags = '<span class="tag">' + (p.anon ? "匿名" : "記名") + '</span>' +
-             ' <span class="tag">' + (p.multi ? "複数回答" : "単一回答") + '</span>';
-  var sub = pollExpired(p) ? "終了 " + dueText(p) : "終了日時 " + dueText(p);
+  var expired = pollExpired(p);
+  var state = p.answered ? "回答済み" : (expired ? "未回答" : "");
   return '<button class="row" style="align-items:flex-start" onclick="openPollDetail(' + p.id + ')">' +
-    '<div class="body">' + tags +
-    '<div class="ttl" style="margin-top:7px">' + esc(p.t) + '</div>' +
-    '<div class="sub">' + sub + (p.answered ? "　回答済み" : "") + '</div></div></button>';
+    '<div class="body"><div class="pl1"><span class="pt">' + esc(p.t) + '</span>' +
+    '<span class="tag' + (p.anon ? " anon" : "") + '">' + (p.anon ? "匿名" : "記名") + '</span></div>' +
+    '<div class="sub">' + (expired ? "終了 " : "終了日時 ") + dueText(p) +
+    (state ? "　" + state : "") + '</div></div></button>';
+}
+
+/* 過去のアンケートは100件まで。超えたら古いものから消す */
+function trimPast(){
+  var past = POLLS.filter(function(p){ return p.answered || pollExpired(p); })
+                  .sort(function(a,b){ return a.due - b.due; });
+  while (past.length > 100){
+    var old = past.shift();
+    POLLS = POLLS.filter(function(p){ return p !== old; });
+  }
 }
 
 function renderPolls(){
+  trimPast();
   var open = pollOpenList(), past = pollPastList();
   $("#poll-open").innerHTML = open.map(pollCard).join("");
   $("#poll-empty").hidden = open.length > 0;
@@ -870,7 +891,7 @@ function renderPolls(){
   $("#past-count").textContent = past.length + "件";
   $("#past-wrap").hidden = !pastOpen;
   $("#past-toggle").textContent = pastOpen ? "▲" : "▼";
-  $("#poll-create").hidden = !isAdmin;
+  $("#poll-createrow").hidden = !isAdmin;
   renderHomePolls();
 }
 function togglePast(){ pastOpen = !pastOpen; renderPolls(); }
@@ -880,11 +901,11 @@ function homePollItem(p){
   var isOpen = (homeOpen === p.id);
   var h = '<div class="qa"><button class="qa-head" onclick="toggleHomePoll(' + p.id + ')">' +
     '<span class="qa-t">' + esc(p.t) + '</span>' +
+    '<span class="tag' + (p.anon ? " anon" : "") + '">' + (p.anon ? "匿名" : "記名") + '</span>' +
     '<span class="qa-m">' + (isOpen ? "▲" : "▼") + '</span></button>';
   if (isOpen){
     h += '<div class="qa-body">' +
-      '<div class="qa-meta">' + (p.anon ? "匿名" : "記名") + '　終了 ' + dueText(p) + '　' +
-        (p.multi ? "複数回答可" : "単一回答") + '</div>' +
+      '<div class="qa-meta">終了 ' + dueText(p) + '</div>' +
       '<p class="qa-desc">' + esc(p.d) + '</p>' +
       '<div class="stack" id="hopts">' + optionsHtml(p, "hopt") + '</div>' +
       (p.anon ? '<p class="notice">匿名のため、送信すると変更できません。</p>' : "") +
@@ -936,6 +957,12 @@ function openPollDetail(id){
   go("polldetail");
 }
 function pdShow(v){ pdView = v; aggOpen = -1; renderDetail(); }
+/* 集計状況から戻るときは、終了前なら回答画面へ戻す */
+function pdBack(){
+  var p = POLLS.filter(function(x){ return x.id === pdId; })[0];
+  if (pdView === "result" && p && !pollExpired(p)){ pdShow("answer"); return; }
+  go("poll");
+}
 function toggleAgg(i){
   var p = POLLS.filter(function(x){ return x.id === pdId; })[0];
   if (p.anon) return;
@@ -964,16 +991,14 @@ function aggHtml(p){
 function renderDetail(){
   var p = POLLS.filter(function(x){ return x.id === pdId; })[0];
   var expired = pollExpired(p);
-  var head = '<span class="tag">' + (p.anon ? "匿名" : "記名") + '</span> ' +
-    '<span class="tag">' + (p.multi ? "複数回答" : "単一回答") + '</span>' +
-    (expired ? ' <span class="tag warn">終了</span>' : "") +
-    '<h3 style="margin-top:9px">' + esc(p.t) + '</h3>' +
+  var head = '<div class="pl1"><h3 style="flex:1;min-width:0">' + esc(p.t) + '</h3>' +
+    '<span class="tag' + (p.anon ? " anon" : "") + '">' + (p.anon ? "匿名" : "記名") + '</span>' +
+    (expired ? ' <span class="tag warn">終了</span>' : "") + '</div>' +
     '<div style="font-size:12px;color:var(--text-dim)">終了日時 ' + dueText(p) + '</div>';
 
   if (pdView === "result"){
     $("#pd").innerHTML = head + aggHtml(p) +
-      (expired ? '<p class="empty">このアンケートは終了しています</p>'
-               : '<button class="submit" style="margin-top:20px" onclick="pdShow(\'answer\')">回答する</button>');
+      (expired ? '<p class="empty">このアンケートは終了しています</p>' : "");
     return;
   }
 
