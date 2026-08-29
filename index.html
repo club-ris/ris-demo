@@ -262,6 +262,19 @@ button.ev:active{background:var(--surface-2)}
 .hint2{margin:0; font-size:11.5px; color:var(--gold-bright)}
 
 /* ---- 名前変更モーダル ---- */
+.optrow{display:flex; align-items:center; gap:8px}
+.optrow .u{flex:0 0 14px; text-align:right}
+.optrow input{flex:1; min-width:0}
+.opt.pick{background:var(--ground); min-height:46px; justify-content:center; gap:8px}
+.opt.pick b{color:var(--gold-bright); font-weight:400; font-size:15px}
+.aggrow{display:block; width:100%; padding:0; margin:0; background:none; border:0;
+  text-align:left; font:inherit; color:inherit; cursor:pointer}
+.aggrow.on .lbl span{color:var(--gold-bright)}
+.voters{padding:7px 2px 3px; font-size:12px; color:var(--text-dim); line-height:1.9}
+.descbox{position:relative}
+.descbox > .mini{position:absolute; top:10px; right:10px; z-index:2}
+.descbox .desc{margin-top:14px; padding-top:46px}
+.tag.warn{color:var(--warn); border-color:var(--warn-rule)}
 .searchwrap{position:relative}
 .sug{position:absolute; z-index:40; left:0; right:0; top:100%; margin-top:3px;
   max-height:230px; overflow-y:auto; background:var(--surface-2);
@@ -464,14 +477,23 @@ button.ev:active{background:var(--surface-2)}
 
     <section class="screen" id="s-poll" hidden>
       <div class="sec">
+        <div class="acc-head">
+          <h2>過去のアンケート</h2>
+          <span class="meta" id="past-count"></span>
+          <span class="sp"></span>
+          <button class="mini" id="poll-create" onclick="openPollForm()" hidden>作成</button>
+          <button class="accbtn" id="past-toggle" onclick="togglePast()">▼</button>
+        </div>
+        <div id="past-wrap" hidden>
+          <div class="stack" id="poll-past"></div>
+          <p class="empty" id="past-empty" hidden>過去のアンケートはありません</p>
+        </div>
+      </div>
+
+      <div class="sec">
         <div class="sec-head"><h2>未回答</h2><span class="meta" id="poll-count"></span></div>
         <div class="stack" id="poll-open"></div>
         <p class="empty" id="poll-empty" hidden>未回答はありません</p>
-      </div>
-      <div class="sec">
-        <button class="foldbtn" onclick="toggleDone()">
-          <span>回答済み　<span id="done-count"></span> 件</span><span id="fold-mark">▼</span>
-        <div class="stack" id="poll-done" hidden style="margin-top:7px"></div>
       </div>
     </section>
 
@@ -480,6 +502,65 @@ button.ev:active{background:var(--surface-2)}
       <div class="detail" id="pd"></div>
     </section>
 
+    <section class="screen" id="s-pollform" hidden>
+      <button class="back" onclick="closePollForm()">← 戻る</button>
+      <div class="sec" style="padding-top:8px">
+        <div class="sec-head"><h2>アンケートの作成</h2></div>
+        <div class="form">
+          <div class="fld">
+            <label>アンケート名 <span class="req" id="rq-t">*</span></label>
+            <input type="text" id="pf-t" maxlength="60" oninput="pfReq()">
+          </div>
+
+          <div class="fld">
+            <label>説明文</label>
+            <textarea id="pf-d" maxlength="500" rows="4" oninput="pfCount()"></textarea>
+            <div class="cnt" id="pf-d-cnt">0 / 500</div>
+          </div>
+
+          <div class="fld">
+            <label>選択肢 <span class="req" id="rq-o">*</span></label>
+            <div class="stack" id="pf-opts"></div>
+            <div class="frow">
+              <button class="mini" id="pf-add" onclick="pfAddOpt()">＋ 選択肢を追加</button>
+              <span class="u" id="pf-optcnt"></span>
+            </div>
+          </div>
+
+          <div class="fld">
+            <label>アンケート終了日時 <span class="req" id="rq-due">*</span></label>
+            <div class="frow">
+              <select id="pf-mon" onchange="pfMonth()"></select><span class="u">月</span>
+              <select id="pf-day" onchange="pfReq()"></select><span class="u">日</span>
+              <select id="pf-hh" onchange="pfReq()"></select><span class="u">:</span>
+              <select id="pf-mm" onchange="pfReq()"></select>
+            </div>
+          </div>
+
+          <div class="fld">
+            <label>回答方式 <span class="req" id="rq-multi">*</span></label>
+            <div class="frow">
+              <label class="opt pick"><input type="radio" name="pfmulti" value="0" onchange="pfReq()"><span><b>◉</b> 単一回答</span></label>
+              <label class="opt pick"><input type="radio" name="pfmulti" value="1" onchange="pfReq()"><span><b>☑</b> 複数回答</span></label>
+            </div>
+          </div>
+
+          <div class="fld">
+            <label>公開方式 <span class="req" id="rq-anon">*</span></label>
+            <div class="frow">
+              <label class="opt pick"><input type="radio" name="pfanon" value="0" onchange="pfReq()"><span>記名</span></label>
+              <label class="opt pick"><input type="radio" name="pfanon" value="1" onchange="pfReq()"><span>匿名</span></label>
+            </div>
+            <p class="hint2" id="pf-anonnote" hidden></p>
+          </div>
+
+          <div class="frow end">
+            <button class="mini" onclick="pfClear()">クリア</button>
+            <button class="mini ok" onclick="pfSubmit()">登録</button>
+          </div>
+        </div>
+      </div>
+    </section>
     <section class="screen" id="s-admin" hidden>
       <div class="sec">
         <div class="sec-head"><h2>承認待ち</h2><span class="meta" id="pend-count"></span></div>
@@ -549,13 +630,6 @@ var POLLS = [
    d:"気になっていることを選んでください。複数選べます。\nこのアンケートは匿名です。",
    o:["イベントの時刻が合わない","連絡が多すぎる","連絡が少なすぎる","支援の分配が不公平","特に不満はない"]}
 ];
-var DONE = [
-  {t:"ベアトラップの開催時刻", a:"21:00 と 22:30"},
-  {t:"要塞戦の参加希望",       a:"参加する"},
-  {t:"同盟支援の優先順位",     a:"回答済み"},
-  {t:"次回イベントの希望",     a:"回答済み"},
-  {t:"ボイスチャットの利用",   a:"利用する"}
-];
 var PENDING = [
   {n:"Taro",   v:"Discord ログイン", w:"10/14 20:11"},
   {n:"Hanako", v:"メール登録",       w:"10/14 18:02"}
@@ -565,7 +639,6 @@ var isAdmin = true;
 var manage  = false;
 var editing = -1;
 var screenName = "home";
-var picked = new Set();
 
 function $(s){ return document.querySelector(s); }
 function p2(n){ return String(n).padStart(2,"0"); }
@@ -599,11 +672,11 @@ function go(name){
   if (name !== "home") noticeEditing = false;
   if (name !== "st"){ manage = false; editing = -1; }
   if (name !== "sched"){ evManage = false; editNoteId = 0; }
-  ["home","sched","st","poll","polldetail","admin"].forEach(function(k){
+  ["home","sched","st","poll","polldetail","pollform","admin"].forEach(function(k){
     var el = $("#s-" + k); if (el) el.hidden = (k !== name);
   });
   document.querySelectorAll(".tabbar button").forEach(function(b){
-    var on = b.dataset.t === name || (name === "polldetail" && b.dataset.t === "poll");
+    var on = b.dataset.t === name || ((name === "polldetail" || name === "pollform") && b.dataset.t === "poll");
     if (on) b.setAttribute("aria-current","page"); else b.removeAttribute("aria-current");
   });
   renderST();
@@ -698,148 +771,324 @@ function commit(i){
 
 function cancelEdit(){ editing = -1; renderST(); }
 
-function pollCard(p){
-  return '<button class="row" style="align-items:flex-start" onclick="openPoll(\'' + p.id + '\')">' +
-    '<div class="body"><span class="tag">' + (p.anon ? "匿名" : "記名") + '</span>' +
-    '<div class="ttl" style="margin-top:7px">' + esc(p.t) + '</div>' +
-    '<div class="sub">' + esc(p.due) + '</div></div></button>';
-}
 
-function renderPolls(){
-  var open = POLLS.filter(function(p){ return !p.done; });
-  $("#poll-open").innerHTML = open.map(pollCard).join("");
-  $("#poll-empty").hidden = open.length > 0;
-  $("#poll-count").textContent = open.length + "件";
-  renderHomePolls();
-  $("#poll-done").innerHTML = DONE.map(function(d){
-    return '<div class="row"><div class="body"><div class="ttl">' + esc(d.t) +
-      '</div><div class="sub">' + esc(d.a) + '</div></div></div>';
-  }).join("");
-  $("#done-count").textContent = DONE.length;
-}
 
-function toggleDone(){
-  var b = $("#poll-done"); b.hidden = !b.hidden;
-  $("#fold-mark").textContent = b.hidden ? "▼" : "▲";
-}
 
-function openPoll(id){
-  var p = POLLS.filter(function(x){ return x.id === id; })[0];
-  picked = new Set();
-  $("#pd").innerHTML =
-    '<span class="tag">' + (p.anon ? "匿名" : "記名") + '</span>' +
-    '<h3 style="margin-top:9px">' + esc(p.t) + '</h3>' +
-    '<div style="font-size:12px;color:var(--text-dim)">' + esc(p.due) + '　' +
-      (p.multi ? "複数回答可" : "単一回答") + '</div>' +
-    '<p class="desc">' + esc(p.d) + '</p>' +
-    '<div class="stack" style="margin-top:16px" id="opts">' +
-      p.o.map(function(o,i){
-        return '<label class="opt"><input type="' + (p.multi ? "checkbox" : "radio") +
-          '" name="opt" value="' + i + '"><span>' + esc(o) + '</span></label>';
-      }).join("") +
-    '</div>' +
-    (p.anon ? '<p class="notice">匿名のため、送信すると変更できません。</p>' : "") +
-    '<button class="submit" id="send" disabled onclick="send(\'' + p.id + '\')">回答する</button>';
 
-  $("#opts").addEventListener("change", function(e){
-    if (!p.multi) picked = new Set([e.target.value]);
-    else if (e.target.checked) picked.add(e.target.value);
-    else picked.delete(e.target.value);
-    document.querySelectorAll("#opts .opt").forEach(function(l){
-      l.classList.toggle("on", picked.has(l.querySelector("input").value));
-    });
-    $("#send").disabled = picked.size === 0;
-  });
-  go("polldetail");
-}
-
-function send(id){
-  var p = POLLS.filter(function(x){ return x.id === id; })[0];
-  var chosen = Array.from(picked).map(function(i){ return p.o[+i]; });
-  p.done = true;
-  DONE.unshift({t:p.t, a:p.anon ? "回答済み" : chosen.join("、")});
-
-  var base = [42,18,14,6,3];
-  var nums = p.o.map(function(_,i){ return (base[i] || 2) + (picked.has(String(i)) ? 1 : 0); });
-  var max = Math.max.apply(null, nums);
-
-  $("#pd").innerHTML =
-    '<h3>回答しました</h3>' +
-    (p.anon ? '<p class="notice">回答は記録と切り離されました。変更はできません。</p>' : "") +
-    '<div class="sec" style="padding:22px 0 0"><div class="sec-head"><h2>集計</h2>' +
-      '<span class="meta">84件</span></div>' +
-      p.o.map(function(o,i){
-        return '<div class="bar' + (nums[i] === max ? " lead" : "") + '">' +
-          '<div class="lbl"><span>' + esc(o) + '</span><b>' + nums[i] + '</b></div>' +
-          '<div class="track"><div class="fill" style="width:' +
-          Math.round(nums[i]/max*100) + '%"></div></div></div>';
-      }).join("") +
-    '</div>' +
-    '<button class="submit" style="margin-top:22px" onclick="go(\'poll\')">戻る</button>';
-  renderPolls();
-}
 
 var homeOpen = null;
 
+
+
+
+/* ================= アンケート ================= */
+var NAMES = ["ユキ","カズ","ミナト","レン","ソラ","ハル","ナオ","トウマ","アオイ","リク",
+             "シオン","ケイ","マコト","ツバサ","ヒカル","ジン","コウ","リョウ","アキ","ノブ"];
+function voterList(n, seed){
+  var a = [];
+  for (var i = 0; i < n; i++){
+    var k = (i + seed*7) % NAMES.length;
+    a.push(NAMES[k] + (i >= NAMES.length ? String(Math.floor(i/NAMES.length)+1) : ""));
+  }
+  return a;
+}
+
+var pollSeq = 1;
+var POLLS = [];
+var pastOpen = false;
+var pdId = 0;        /* 表示中のアンケート */
+var pdView = "";     /* "answer" | "result" */
+var aggOpen = -1;    /* 集計で回答者名を開いている選択肢 */
+var picked = new Set();
+
+(function(){
+  var d0 = dayStart(Date.now()).getTime();
+  function at(o,h,m){ var d=new Date(d0); d.setDate(d.getDate()+o); d.setHours(h,m,0,0); return d.getTime(); }
+  function mk(t, d, o, multi, anon, due, answered, my, cnt){
+    var p = {id:pollSeq++, t:t, d:d, o:o, multi:multi, anon:anon, due:due,
+             answered:answered, my:my || [], cnt:cnt || o.map(function(){ return 0; })};
+    p.voters = p.o.map(function(_, i){ return anon ? [] : voterList(p.cnt[i], p.id + i); });
+    POLLS.push(p);
+  }
+  mk("同盟決戦への参加希望",
+     "今週の同盟決戦の参加可否を教えてください。\n開始は21:00、終了は翌2:00です。\n途中参加でも構いません。",
+     ["参加する","途中まで参加する","参加しない","まだ分からない"],
+     false, false, at(2,21,0), false, [], [42,18,14,6]);
+  mk("同盟運営へのご意見",
+     "気になっていることを選んでください。複数選べます。\nこのアンケートは匿名です。",
+     ["イベントの時刻が合わない","連絡が多すぎる","連絡が少なすぎる","支援の分配が不公平","特に不満はない"],
+     true, true, at(6,23,59), false, [], [23,8,11,9,37]);
+  mk("ベアトラップの開催時刻",
+     "次回のベアトラップを何時に開催するか決めます。",
+     ["21:00 と 22:30","21:00 と 23:00","22:00 と 23:30"],
+     false, false, at(-3,21,0), true, [0], [51,22,9]);
+  mk("要塞戦の参加希望",
+     "今回の要塞戦に参加できるか教えてください。",
+     ["参加する","参加しない"],
+     false, false, at(-5,20,0), true, [0], [67,15]);
+  mk("同盟支援の優先順位",
+     "支援を優先してほしいものを選んでください。匿名です。",
+     ["建築","研究","訓練","治療"],
+     true, true, at(-8,23,59), true, [1], [19,34,12,7]);
+  mk("ボイスチャットの利用",
+     "Discordのボイスチャットを使いますか。",
+     ["使う","たまに使う","使わない"],
+     false, false, at(-12,23,59), true, [1], [28,25,19]);
+})();
+
+function pollExpired(p){ return p.due <= Date.now(); }
+function pollOpenList(){ return POLLS.filter(function(p){ return !p.answered && !pollExpired(p); }); }
+function pollPastList(){
+  return POLLS.filter(function(p){ return p.answered || pollExpired(p); })
+              .sort(function(a,b){ return b.due - a.due; });
+}
+function dueText(p){
+  var d = new Date(p.due);
+  return (d.getMonth()+1) + "/" + d.getDate() + " " + d.getHours() + ":" + p2(d.getMinutes());
+}
+function totalOf(p){ return p.cnt.reduce(function(a,b){ return a+b; }, 0); }
+
+/* --- 一覧のカード --- */
+function pollCard(p){
+  var tags = '<span class="tag">' + (p.anon ? "匿名" : "記名") + '</span>' +
+             ' <span class="tag">' + (p.multi ? "複数回答" : "単一回答") + '</span>';
+  var sub = pollExpired(p) ? "終了 " + dueText(p) : "終了日時 " + dueText(p);
+  return '<button class="row" style="align-items:flex-start" onclick="openPollDetail(' + p.id + ')">' +
+    '<div class="body">' + tags +
+    '<div class="ttl" style="margin-top:7px">' + esc(p.t) + '</div>' +
+    '<div class="sub">' + sub + (p.answered ? "　回答済み" : "") + '</div></div></button>';
+}
+
+function renderPolls(){
+  var open = pollOpenList(), past = pollPastList();
+  $("#poll-open").innerHTML = open.map(pollCard).join("");
+  $("#poll-empty").hidden = open.length > 0;
+  $("#poll-count").textContent = open.length + "件";
+  $("#poll-past").innerHTML = past.map(pollCard).join("");
+  $("#past-empty").hidden = past.length > 0;
+  $("#past-count").textContent = past.length + "件";
+  $("#past-wrap").hidden = !pastOpen;
+  $("#past-toggle").textContent = pastOpen ? "▲" : "▼";
+  $("#poll-create").hidden = !isAdmin;
+  renderHomePolls();
+}
+function togglePast(){ pastOpen = !pastOpen; renderPolls(); }
+
+/* --- ホーム（未回答・期限内のみ） --- */
 function homePollItem(p){
   var isOpen = (homeOpen === p.id);
-  var h = '<div class="qa">' +
-    '<button class="qa-head" onclick="toggleHomePoll(\'' + p.id + '\')">' +
-      '<span class="qa-t">' + esc(p.t) + '</span>' +
-      '<span class="qa-m">' + (isOpen ? '▲' : '▼') + '</span>' +
-    '</button>';
+  var h = '<div class="qa"><button class="qa-head" onclick="toggleHomePoll(' + p.id + ')">' +
+    '<span class="qa-t">' + esc(p.t) + '</span>' +
+    '<span class="qa-m">' + (isOpen ? "▲" : "▼") + '</span></button>';
   if (isOpen){
     h += '<div class="qa-body">' +
-      '<div class="qa-meta">' + (p.anon ? '匿名' : '記名') + '　' + esc(p.due) + '　' +
-        (p.multi ? '複数回答可' : '単一回答') + '</div>' +
+      '<div class="qa-meta">' + (p.anon ? "匿名" : "記名") + '　終了 ' + dueText(p) + '　' +
+        (p.multi ? "複数回答可" : "単一回答") + '</div>' +
       '<p class="qa-desc">' + esc(p.d) + '</p>' +
-      '<div class="stack" id="hopts">' +
-        p.o.map(function(o,i){
-          return '<label class="opt"><input type="' + (p.multi ? 'checkbox' : 'radio') +
-            '" name="hopt" value="' + i + '"><span>' + esc(o) + '</span></label>';
-        }).join("") +
-      '</div>' +
+      '<div class="stack" id="hopts">' + optionsHtml(p, "hopt") + '</div>' +
       (p.anon ? '<p class="notice">匿名のため、送信すると変更できません。</p>' : "") +
-      '<button class="submit" id="hsend" disabled onclick="sendHome(\'' + p.id + '\')">回答する</button>' +
+      '<button class="submit" id="hsend" disabled onclick="sendAnswer(' + p.id + ',true)">回答する</button>' +
     '</div>';
   }
   return h + '</div>';
 }
-
 function renderHomePolls(){
-  var open = POLLS.filter(function(p){ return !p.done; });
+  var open = pollOpenList();
   $("#home-poll").innerHTML = open.map(homePollItem).join("");
   $("#home-poll-empty").hidden = open.length > 0;
-
   var box = $("#hopts");
-  if (!box) return;
-  var p = POLLS.filter(function(x){ return x.id === homeOpen; })[0];
+  if (box) bindOpts(box, POLLS.filter(function(x){ return x.id === homeOpen; })[0], "#hsend");
+}
+function toggleHomePoll(id){ homeOpen = (homeOpen === id) ? null : id; picked = new Set(); renderHomePolls(); }
+
+/* --- 選択肢の描画と選択状態 --- */
+function optionsHtml(p, nm){
+  return p.o.map(function(o,i){
+    return '<label class="opt"><input type="' + (p.multi ? "checkbox" : "radio") +
+      '" name="' + nm + '" value="' + i + '"' + (picked.has(String(i)) ? " checked" : "") +
+      '><span>' + esc(o) + '</span></label>';
+  }).join("");
+}
+function bindOpts(box, p, sendSel){
   box.addEventListener("change", function(e){
     if (!p.multi) picked = new Set([e.target.value]);
     else if (e.target.checked) picked.add(e.target.value);
     else picked.delete(e.target.value);
-    document.querySelectorAll("#hopts .opt").forEach(function(l){
+    box.querySelectorAll(".opt").forEach(function(l){
       l.classList.toggle("on", picked.has(l.querySelector("input").value));
     });
-    $("#hsend").disabled = (picked.size === 0);
+    $(sendSel).disabled = (picked.size === 0);
+  });
+  box.querySelectorAll(".opt").forEach(function(l){
+    l.classList.toggle("on", picked.has(l.querySelector("input").value));
+  });
+  $(sendSel).disabled = (picked.size === 0);
+}
+
+/* --- 詳細画面 --- */
+function openPollDetail(id){
+  var p = POLLS.filter(function(x){ return x.id === id; })[0];
+  pdId = id; aggOpen = -1;
+  picked = new Set((p.answered && !p.anon) ? p.my.map(String) : []);
+  pdView = pollExpired(p) ? "result" : "answer";
+  renderDetail();
+  go("polldetail");
+}
+function pdShow(v){ pdView = v; aggOpen = -1; renderDetail(); }
+function toggleAgg(i){
+  var p = POLLS.filter(function(x){ return x.id === pdId; })[0];
+  if (p.anon) return;
+  aggOpen = (aggOpen === i) ? -1 : i;
+  renderDetail();
+}
+
+function aggHtml(p){
+  var max = Math.max.apply(null, p.cnt);
+  return '<div class="sec" style="padding:20px 0 0">' +
+    '<div class="sec-head"><h2>集計</h2><span class="meta">' + totalOf(p) + '件</span></div>' +
+    p.o.map(function(o,i){
+      var bar = '<div class="bar' + (p.cnt[i] === max ? " lead" : "") + '">' +
+        '<div class="lbl"><span>' + esc(o) + '</span><b>' + p.cnt[i] + '</b></div>' +
+        '<div class="track"><div class="fill" style="width:' +
+        (max ? Math.round(p.cnt[i]/max*100) : 0) + '%"></div></div></div>';
+      if (p.anon) return bar;
+      var open = (aggOpen === i);
+      return '<button class="aggrow' + (open ? " on" : "") + '" onclick="toggleAgg(' + i + ')">' + bar + '</button>' +
+        (open ? '<div class="voters">' + (p.voters[i].length ? p.voters[i].map(esc).join("、") : "回答者はいません") + '</div>' : "");
+    }).join("") +
+    (p.anon ? '<p class="notice" style="margin-top:14px">匿名のため、誰が回答したかは表示されません。</p>' : "") +
+    '</div>';
+}
+
+function renderDetail(){
+  var p = POLLS.filter(function(x){ return x.id === pdId; })[0];
+  var expired = pollExpired(p);
+  var head = '<span class="tag">' + (p.anon ? "匿名" : "記名") + '</span> ' +
+    '<span class="tag">' + (p.multi ? "複数回答" : "単一回答") + '</span>' +
+    (expired ? ' <span class="tag warn">終了</span>' : "") +
+    '<h3 style="margin-top:9px">' + esc(p.t) + '</h3>' +
+    '<div style="font-size:12px;color:var(--text-dim)">終了日時 ' + dueText(p) + '</div>';
+
+  if (pdView === "result"){
+    $("#pd").innerHTML = head + aggHtml(p) +
+      (expired ? '<p class="empty">このアンケートは終了しています</p>'
+               : '<button class="submit" style="margin-top:20px" onclick="pdShow(\'answer\')">回答する</button>');
+    return;
+  }
+
+  $("#pd").innerHTML = head +
+    '<div class="descbox"><button class="mini" onclick="pdShow(\'result\')">集計状況</button>' +
+    '<p class="desc">' + esc(p.d) + '</p></div>' +
+    '<div class="stack" style="margin-top:16px" id="dopts">' + optionsHtml(p, "dopt") + '</div>' +
+    (p.anon ? '<p class="notice">匿名のため、送信すると変更できません。</p>'
+            : '<p class="hint2" style="margin-top:12px">締切前なら何度でも変更できます。</p>') +
+    '<button class="submit" id="dsend" disabled onclick="sendAnswer(' + p.id + ',false)">' +
+      (p.answered ? "回答を変更する" : "回答する") + '</button>';
+  bindOpts($("#dopts"), p, "#dsend");
+}
+
+function sendAnswer(id, fromHome){
+  var p = POLLS.filter(function(x){ return x.id === id; })[0];
+  var sel = Array.from(picked).map(Number);
+  if (p.answered && !p.anon) p.my.forEach(function(i){ if (p.cnt[i] > 0) p.cnt[i]--; });
+  sel.forEach(function(i){ p.cnt[i]++; });
+  if (!p.anon){
+    if (p.answered) p.my.forEach(function(i){ p.voters[i] = p.voters[i].filter(function(v){ return v !== "あなた"; }); });
+    sel.forEach(function(i){ p.voters[i].push("あなた"); });
+  }
+  p.answered = true;
+  p.my = sel;
+  homeOpen = null;
+  renderPolls();
+  toast(p.anon ? "回答しました" : "回答を受け付けました");
+  if (!fromHome){ pdShow("result"); }
+}
+
+/* ================= 作成フォーム ================= */
+var pfOpts = ["", "", ""];
+
+function openPollForm(){ pfBuild(); go("pollform"); }
+function closePollForm(){ go("poll"); }
+
+function pfBuild(){
+  $("#pf-mon").innerHTML = opts(range(1,12));
+  $("#pf-day").innerHTML = opts([]);
+  $("#pf-hh").innerHTML  = opts(range(0,23));
+  $("#pf-mm").innerHTML  = opts(range(0,55,5).map(function(v){ return [v[0], p2(v[0])]; }));
+  pfClearSilent();
+}
+function pfMonth(){
+  var m = +$("#pf-mon").value, cur = $("#pf-day").value;
+  $("#pf-day").innerHTML = m ? opts(range(1, daysIn(m)), cur) : opts([]);
+  pfReq();
+}
+function pfRenderOpts(){
+  $("#pf-opts").innerHTML = pfOpts.map(function(v,i){
+    return '<div class="optrow"><span class="u">' + (i+1) + '</span>' +
+      '<input type="text" maxlength="50" value="' + esc(v) + '" ' +
+      'oninput="pfOpts[' + i + ']=this.value; pfReq()" placeholder="選択肢' + (i+1) + '">' +
+      (pfOpts.length > 2 ? '<button class="mini" onclick="pfDelOpt(' + i + ')">×</button>' : "") +
+      '</div>';
+  }).join("");
+  $("#pf-optcnt").textContent = pfOpts.length + " / 10";
+  $("#pf-add").hidden = pfOpts.length >= 10;
+}
+function pfAddOpt(){ if (pfOpts.length < 10){ pfOpts.push(""); pfRenderOpts(); pfReq(); } }
+function pfDelOpt(i){ pfOpts.splice(i,1); pfRenderOpts(); pfReq(); }
+function pfCount(){ $("#pf-d-cnt").textContent = $("#pf-d").value.length + " / 500"; }
+
+function pfDue(){
+  var mo = +$("#pf-mon").value, d = +$("#pf-day").value;
+  var h = $("#pf-hh").value, mi = $("#pf-mm").value;
+  if (!mo || !d || h === "" || mi === "") return null;
+  return new Date(yearFor(mo), mo-1, d, +h, +mi, 0, 0).getTime();
+}
+function pfRadio(nm){ var r = document.querySelector('input[name="' + nm + '"]:checked'); return r ? r.value : ""; }
+function pfValidOpts(){ return pfOpts.filter(function(v){ return v.trim(); }); }
+
+function pfReq(){
+  $("#rq-t").hidden   = !!$("#pf-t").value.trim();
+  $("#rq-o").hidden   = pfValidOpts().length >= 2;
+  $("#rq-due").hidden = pfDue() !== null;
+  $("#rq-multi").hidden = pfRadio("pfmulti") !== "";
+  $("#rq-anon").hidden  = pfRadio("pfanon") !== "";
+  var note = $("#pf-anonnote");
+  if (pfRadio("pfanon") === "1"){
+    note.hidden = false;
+    note.textContent = "匿名にすると、誰が回答したかは誰にも分かりません。回答の変更もできません。";
+  } else note.hidden = true;
+}
+
+function pfClearSilent(){
+  $("#pf-t").value = ""; $("#pf-d").value = ""; pfCount();
+  pfOpts = ["","",""]; pfRenderOpts();
+  $("#pf-mon").value = ""; $("#pf-hh").value = ""; $("#pf-mm").value = "";
+  $("#pf-day").innerHTML = opts([]);
+  document.querySelectorAll('input[name="pfmulti"],input[name="pfanon"]').forEach(function(r){ r.checked = false; });
+  pfReq();
+}
+function pfClear(){ ask("入力内容を全てクリアしますか？", function(){ pfClearSilent(); toast("クリアしました"); }); }
+
+function pfSubmit(){
+  pfReq();
+  var t = $("#pf-t").value.trim(), o = pfValidOpts(), due = pfDue();
+  var multi = pfRadio("pfmulti"), anon = pfRadio("pfanon");
+  if (!t || o.length < 2 || due === null || multi === "" || anon === ""){
+    info("朱色の * が付いた項目を入力してください。選択肢は2つ以上必要です。"); return;
+  }
+  if (due <= Date.now()){ info("終了日時が過去になっています。"); return; }
+  ask("この内容でアンケートを作成しますか？", function(){
+    var p = {id:pollSeq++, t:t, d:$("#pf-d").value, o:o, multi:(multi==="1"), anon:(anon==="1"),
+             due:due, answered:false, my:[], cnt:o.map(function(){ return 0; })};
+    p.voters = o.map(function(){ return []; });
+    POLLS.push(p);
+    pfClearSilent();
+    renderPolls();
+    toast("作成しました");
+    go("poll");
   });
 }
 
-function toggleHomePoll(id){
-  homeOpen = (homeOpen === id) ? null : id;
-  picked = new Set();
-  renderHomePolls();
-}
-
-function sendHome(id){
-  var p = POLLS.filter(function(x){ return x.id === id; })[0];
-  var chosen = Array.from(picked).map(function(i){ return p.o[+i]; });
-  p.done = true;
-  DONE.unshift({t:p.t, a: p.anon ? "回答済み" : chosen.join("、")});
-  homeOpen = null;
-  picked = new Set();
-  renderPolls();
-}
 
 var NOTICE = {
   text: "今週の同盟決戦は 10/16（木）21:00 開始です。参加希望のアンケートに必ず回答してください。\n\nST防衛の担当者へ：解放時刻の更新が遅れると同盟全体に影響します。気づいた時点で更新をお願いします。\n\n新しく加入した方は、ゲーム内のキャラ名とこのアプリの登録名を必ず一致させてください。",
