@@ -1083,14 +1083,29 @@ function renderGantt(){
   }
   head += '</div></div>';
 
-  var rows = SCHED.slice().sort(function(a,b){ return a.s - b.s; }).map(function(o){
-    var si = Math.max(0, Math.round((dayKey(o.s) - today) / (24*H)));
-    var ei = Math.max(si, Math.round((dayKey(o.e) - today) / (24*H)));
-    var cells = "";
-    for (var i = 0; i < days; i++) cells += '<div class="g-cell' + (i === 0 ? " today" : "") + '"></div>';
-    return '<div class="g-row"><div class="g-lbl">' + esc(o.n) + '</div><div class="g-cells">' + cells +
-      '<div class="g-bar' + (o.mode === "start" ? " st" : "") + '" style="left:' + (si*W + 3) +
-      'px; width:' + ((ei - si + 1)*W - 6) + 'px"></div></div></div>';
+  /* 同じイベント名は1行にまとめ、その行に開催回数ぶんのバーを引く */
+  var grp = {}, names = [];
+  SCHED.forEach(function(o){
+    if (!grp[o.n]){ grp[o.n] = []; names.push(o.n); }
+    grp[o.n].push(o);
+  });
+  function firstStart(n){
+    return grp[n].reduce(function(m, o){ return o.s < m ? o.s : m; }, grp[n][0].s);
+  }
+  names.sort(function(a,b){ return firstStart(a) - firstStart(b); });
+
+  var cells = "";
+  for (var j = 0; j < days; j++) cells += '<div class="g-cell' + (j === 0 ? " today" : "") + '"></div>';
+
+  var rows = names.map(function(n){
+    var bars = grp[n].map(function(o){
+      var si = Math.max(0, Math.round((dayKey(o.s) - today) / (24*H)));
+      var ei = Math.max(si, Math.round((dayKey(o.e) - today) / (24*H)));
+      return '<div class="g-bar' + (o.mode === "start" ? " st" : "") + '" style="left:' +
+        (si*W + 3) + 'px; width:' + ((ei - si + 1)*W - 6) + 'px"></div>';
+    }).join("");
+    return '<div class="g-row"><div class="g-lbl">' + esc(n) + '</div>' +
+      '<div class="g-cells">' + cells + bars + '</div></div>';
   }).join("");
 
   $("#gantt").innerHTML = '<div style="min-width:' + (LBL + days*W) + 'px">' + head + rows + '</div>';
