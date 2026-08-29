@@ -201,6 +201,69 @@ button.row:active{background:var(--surface-2)}
 #notice-body .acts{display:flex; align-items:center; gap:8px; margin-top:9px}
 .counter{margin-right:auto; font-size:11.5px; color:var(--text-dim);
   font-variant-numeric:tabular-nums}
+/* ---- イベント行 ---- */
+.ev{display:flex; flex-direction:column; gap:8px; padding:10px 14px;
+  background:var(--surface); border-radius:4px}
+.ev .nm{font-size:15px; line-height:1.35}
+.ev .l2{display:flex; align-items:baseline; gap:8px; min-width:0}
+.ev .tm{font-family:var(--serif); font-size:13.5px; color:var(--gold-bright);
+  font-variant-numeric:tabular-nums; white-space:nowrap; flex:0 0 auto}
+.ev .nt{font-size:11px; color:var(--text-dim); line-height:1.5;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0}
+.ev.open .nt{white-space:normal; overflow:visible}
+button.ev{width:100%; text-align:left; font:inherit; color:inherit; border:0; cursor:pointer}
+.ev .acts{display:flex; gap:7px; justify-content:flex-end}
+.ev textarea{width:100%; padding:10px; background:var(--ground); border:1px solid var(--rule);
+  border-radius:3px; color:var(--text); font:inherit; font-size:13.5px; line-height:1.7; resize:vertical}
+.form .opt{background:var(--ground); min-height:46px}
+button.ev:active{background:var(--surface-2)}
+.daygrp{margin-bottom:6px; font-size:13px; color:var(--gold); letter-spacing:.06em}
+
+/* ---- ガントチャート ---- */
+.gantt{overflow-x:auto; -webkit-overflow-scrolling:touch;
+  background:var(--surface); border-radius:4px; padding:8px 0}
+.g-row{display:flex; align-items:center; height:30px}
+.g-lbl{position:sticky; left:0; z-index:2; flex:0 0 104px; padding:0 8px 0 12px;
+  background:var(--surface); font-size:11.5px; color:var(--text);
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.g-head .g-lbl{color:var(--text-dim)}
+.g-cells{display:flex; position:relative; flex:0 0 auto}
+.g-cell{flex:0 0 42px; height:30px; border-left:1px solid var(--rule);
+  font-size:10px; color:var(--text-dim); text-align:center; padding-top:6px;
+  font-variant-numeric:tabular-nums}
+.g-cell.today{background:#1B1A16}
+.g-cell.today b{color:var(--gold-bright); font-weight:400}
+.g-bar{position:absolute; top:7px; height:16px; border-radius:3px;
+  background:var(--gold-dim); border:1px solid var(--gold)}
+.g-bar.st{background:transparent; border-color:var(--gold-bright)}
+
+/* ---- 登録フォーム ---- */
+.form{display:flex; flex-direction:column; gap:16px; padding:14px;
+  background:var(--surface); border-radius:4px}
+.fld{display:flex; flex-direction:column; gap:7px}
+.fld > label{font-size:12px; color:var(--text-dim); letter-spacing:.06em}
+.req{color:var(--warn); font-weight:700}
+.frow{display:flex; align-items:center; gap:6px; flex-wrap:wrap}
+.frow.end{justify-content:flex-end; gap:8px}
+.u{font-size:12px; color:var(--text-dim)}
+.form input[type="search"], .form input[type="text"], .form select, .form textarea{
+  background:var(--ground); border:1px solid var(--rule); border-radius:3px;
+  color:var(--text); font:inherit; font-size:14px; padding:9px 8px; min-height:40px}
+.form select{flex:0 0 auto; min-width:64px}
+.form select#f-name{flex:1; min-width:0}
+.form input[type="search"], .form textarea{width:100%}
+.form textarea{resize:vertical; line-height:1.7}
+.cnt{font-size:11px; color:var(--text-dim); text-align:right;
+  font-variant-numeric:tabular-nums}
+.hint2{margin:0; font-size:11.5px; color:var(--gold-bright)}
+
+/* ---- 名前変更モーダル ---- */
+.modal{position:fixed; inset:0; z-index:60; background:rgba(0,0,0,.72);
+  display:flex; align-items:center; justify-content:center; padding:24px}
+.modal-box{width:100%; max-width:340px; padding:18px; border-radius:6px;
+  background:var(--surface); border:1px solid var(--rule)}
+.modal-box p{margin:0 0 12px; font-size:13.5px}
+.modal-box input{width:100%; margin-bottom:14px}
 :focus-visible{outline:2px solid var(--gold); outline-offset:2px}
 </style>
 
@@ -245,11 +308,8 @@ button.row:active{background:var(--surface-2)}
 
       <div class="sec">
         <div class="sec-head"><h2>今日の予定</h2></div>
-        <div class="stack">
-          <div class="row"><div class="at">21:00</div><div class="body"><div class="ttl">ベアトラップ</div></div></div>
-          <div class="row"><div class="at">22:30</div><div class="body"><div class="ttl">ベアトラップ 第2回</div></div></div>
-          <div class="row span"><div class="body"><div class="ttl">同盟決戦</div><div class="sub">21:00 〜 翌 2:00</div></div></div>
-        </div>
+        <div class="stack" id="home-ev"></div>
+        <p class="empty" id="home-ev-empty" hidden>本日の予定はありません</p>
       </div>
 
       <div class="sec">
@@ -270,32 +330,89 @@ button.row:active{background:var(--surface-2)}
 
     <section class="screen" id="s-sched" hidden>
       <div class="sec">
-        <div class="sec-head"><h2>10 / 14（火）</h2><span class="meta">今日</span></div>
-        <div class="stack">
-          <div class="row"><div class="at">21:00</div><div class="body"><div class="ttl">ベアトラップ</div></div></div>
-          <div class="row"><div class="at">22:30</div><div class="body"><div class="ttl">ベアトラップ 第2回</div></div></div>
+        <div class="acc-head">
+          <h2 id="ev-title">予定</h2>
+          <span class="sp"></span>
+          <button class="mini" id="ev-manage" onclick="toggleEvManage()" hidden>管理</button>
+          <button class="mini ok" id="ev-done" onclick="toggleEvManage()" hidden>完了</button>
+        </div>
+
+        <div id="gantt-wrap">
+          <div class="gantt" id="gantt"></div>
+        </div>
+
+        <div id="ev-form" hidden>
+          <div class="form">
+            <div class="fld">
+              <label>イベント名 <span class="req" id="req-name">*</span></label>
+              <input type="search" id="f-search" placeholder="キーワードで検索（部分一致）" oninput="onSearch()">
+              <div class="frow">
+                <select id="f-name" onchange="onPickName()"></select>
+              </div>
+              <p class="hint2" id="f-newhint" hidden></p>
+              <div class="frow end" id="f-renamerow" hidden>
+                <button class="mini" onclick="openRename()">イベント名を変更</button>
+              </div>
+            </div>
+
+            <div class="fld">
+              <label>開始日時 <span class="req" id="req-start">*</span></label>
+              <div class="frow">
+                <select id="s-mon" onchange="onMonth('s')"></select><span class="u">月</span>
+                <select id="s-day" onchange="syncEnd()"></select><span class="u">日</span>
+                <select id="s-hh" onchange="syncEnd()"></select><span class="u">:</span>
+                <select id="s-mm" onchange="syncEnd()"></select>
+              </div>
+            </div>
+
+            <div class="fld">
+              <label>終了日時 <span class="req" id="req-end">*</span></label>
+              <div class="frow">
+                <select id="e-mon" onchange="onMonth('e'); endManual()"></select><span class="u">月</span>
+                <select id="e-day" onchange="endManual()"></select><span class="u">日</span>
+                <select id="e-hh" onchange="syncEnd()"></select><span class="u">:</span>
+                <select id="e-mm" onchange="syncEnd()"></select>
+              </div>
+            </div>
+
+            <div class="fld">
+              <label>イベント名の横に表示するもの <span class="req" id="req-mode">*</span></label>
+              <div class="frow">
+                <label class="opt" style="flex:1"><input type="radio" name="fmode" value="start" onchange="onMode()"><span>開始時間</span></label>
+                <label class="opt" style="flex:1"><input type="radio" name="fmode" value="range" onchange="onMode()"><span>開催期間</span></label>
+              </div>
+            </div>
+
+            <div class="fld">
+              <label>備考</label>
+              <textarea id="f-note" maxlength="200" rows="3" oninput="countFNote()"></textarea>
+              <div class="cnt" id="f-note-cnt">0 / 200</div>
+            </div>
+
+            <div class="frow end">
+              <button class="mini" onclick="clearForm()">クリア</button>
+              <button class="mini ok" onclick="submitEvent()">登録</button>
+            </div>
+          </div>
         </div>
       </div>
+
       <div class="sec">
-        <div class="sec-head"><h2>10 / 15（水）</h2></div>
-        <div class="stack">
-          <div class="row"><div class="at">20:00</div><div class="body"><div class="ttl">要塞戦</div></div></div>
-        </div>
-      </div>
-      <div class="sec">
-        <div class="sec-head"><h2>10 / 16（木）</h2></div>
-        <div class="stack">
-          <div class="row span"><div class="body"><div class="ttl">同盟決戦</div><div class="sub">21:00 〜 翌 2:00</div></div></div>
-        </div>
-      </div>
-      <div class="sec">
-        <div class="sec-head"><h2>日程未定</h2><span class="meta">2件</span></div>
-        <div class="stack">
-          <div class="row dim"><div class="body"><div class="ttl">季節イベント</div></div></div>
-          <div class="row dim"><div class="body"><div class="ttl">月例イベント</div></div></div>
-        </div>
+        <div id="ev-list"></div>
+        <p class="empty" id="ev-empty" hidden>登録されたイベントはありません</p>
       </div>
     </section>
+
+    <div class="modal" id="rename-modal" hidden>
+      <div class="modal-box">
+        <p>変更したいイベント名を入力してください。</p>
+        <input type="text" id="rename-input">
+        <div class="frow end">
+          <button class="mini" onclick="closeRename()">キャンセル</button>
+          <button class="mini ok" onclick="doRename()">登録</button>
+        </div>
+      </div>
+    </div>
 
     <section class="screen" id="s-st" hidden>
       <div class="sec">
@@ -449,6 +566,7 @@ function go(name){
   screenName = name;
   if (name !== "home") noticeEditing = false;
   if (name !== "st"){ manage = false; editing = -1; }
+  if (name !== "sched"){ evManage = false; editNoteId = 0; }
   ["home","sched","st","poll","polldetail","admin"].forEach(function(k){
     var el = $("#s-" + k); if (el) el.hidden = (k !== name);
   });
@@ -458,6 +576,8 @@ function go(name){
   });
   renderST();
   renderNotice();
+  renderEvents();
+  renderHomeEvents();
   renderSTSection();
   scrollTo(0,0);
 }
@@ -736,6 +856,8 @@ function editNotice(){
   noticeEditing = true;
   openSec.notice = true;
   renderNotice();
+  renderEvents();
+  renderHomeEvents();
   var f = $("#ntext"); if (f) f.focus();
 }
 
@@ -750,6 +872,404 @@ function saveNotice(){
   NOTICE.at = Date.now();
   noticeEditing = false;
   renderNotice();
+  renderEvents();
+  renderHomeEvents();
+}
+
+/* ================= イベント ================= */
+/* EM = イベント名マスタ（時刻・備考・表示方法を記憶。日付は記憶しない）
+   y = よみがな（あいうえお順の並べ替え用）
+   sh/sm/eh/em = 開始・終了の時刻。null は未登録
+   mode = "range"(開催期間) / "start"(開始時間)                       */
+var EM = [
+  {n:"全軍参戦",           y:"ぜんぐんさんせん",              sh:9,  sm:0,  eh:8,  em:59, mode:"range", note:""},
+  {n:"大乱闘フェスティバル", y:"だいらんとうふぇすてぃばる",    sh:9,  sm:0,  eh:8,  em:59, mode:"range", note:""},
+  {n:"軍備競技",           y:"ぐんびきょうぎ",                sh:9,  sm:0,  eh:8,  em:59, mode:"range", note:""},
+  {n:"峡谷合戦（一軍）",    y:"きょうこくかっせん1",           sh:23, sm:0,  eh:0,  em:0,  mode:"start", note:""},
+  {n:"峡谷合戦（二軍）",    y:"きょうこくかっせん2",           sh:21, sm:0,  eh:22, em:0,  mode:"start", note:""},
+  {n:"同盟総動員",         y:"どうめいそうどういん",           sh:9,  sm:0,  eh:8,  em:59, mode:"range", note:""},
+  {n:"兵器工場争奪戦（一軍）", y:"へいきこうじょうそうだつせん1", sh:23, sm:0, eh:23, em:30, mode:"start", note:""},
+  {n:"兵器工場争奪戦（二軍）", y:"へいきこうじょうそうだつせん2", sh:21, sm:0, eh:21, em:30, mode:"start", note:""},
+  {n:"同盟争覇戦",         y:"どうめいそうはせん",             sh:9,  sm:0,  eh:8,  em:59, mode:"range", note:""},
+  {n:"王城決戦",           y:"おうじょうけっせん",             sh:20, sm:0,  eh:2,  em:0,  mode:"start", note:""},
+  {n:"氷結の秘宝",         y:"ひょうけつのひほう",             sh:9,  sm:0,  eh:8,  em:59, mode:"range", note:""},
+  {n:"カラフルかき氷屋",    y:"からふるかきごおりや",           sh:9,  sm:0,  eh:8,  em:59, mode:"range", note:""},
+  {n:"霜竜の覇者",         y:"そうりゅうのはしゃ",             sh:20, sm:0,  eh:2,  em:0,  mode:"start", note:""},
+  {n:"夢幻追憶",           y:"むげんついおく",                sh:9,  sm:0,  eh:8,  em:59, mode:"range", note:""},
+  {n:"氷原の支配者",       y:"ひょうげんのしはいしゃ",          sh:9,  sm:0,  eh:8,  em:59, mode:"range", note:""},
+  {n:"クレイジー・ジョイ",  y:"くれいじーじょい",               sh:21, sm:30, eh:22, em:0,  mode:"start", note:""},
+  {n:"同盟大作戦",         y:"どうめいだいさくせん",           sh:9,  sm:0,  eh:8,  em:59, mode:"range", note:""},
+  {n:"雪原行商",           y:"せつげんぎょうしょう",           sh:9,  sm:0,  eh:8,  em:59, mode:"range", note:""},
+  {n:"穴釣り選手権",       y:"あなづりせんしゅけん",           sh:9,  sm:0,  eh:8,  em:59, mode:"range", note:""},
+  {n:"童心の宴",           y:"どうしんのうたげ",               sh:9,  sm:0,  eh:8,  em:59, mode:"range", note:""},
+  {n:"熊狩行動①",         y:"くまがりこうどう1",              sh:21, sm:0,  eh:21, em:30, mode:"start", note:""},
+  {n:"熊狩行動②",         y:"くまがりこうどう2",              sh:22, sm:30, eh:23, em:0,  mode:"start", note:""},
+  {n:"最強領主",           y:"さいきょうりょうしゅ",           sh:9,  sm:0,  eh:8,  em:59, mode:"range", note:""},
+  {n:"SvS（準備F）",       y:"えすぶいえす1",                 sh:9,  sm:0,  eh:19, em:0,  mode:"range", note:""},
+  {n:"SvS（戦闘F）",       y:"えすぶいえす2",                 sh:20, sm:0,  eh:2,  em:0,  mode:"start", note:""}
+];
+(function(){
+  for (var i = 1; i <= 12; i++)
+    EM.push({n:i+"号砦", y:"とりで"+p2(i), sh:null, sm:null, eh:null, em:null, mode:"start", note:""});
+  for (var j = 1; j <= 4; j++)
+    EM.push({n:j+"号要塞", y:"ようさい"+p2(j), sh:null, sm:null, eh:null, em:null, mode:"start", note:""});
+})();
+
+var SCHED = [];
+var evSeq = 1;
+var evManage = false;
+var fSel = "";
+var endAuto = true;
+var noteOpen = {};
+var editNoteId = 0;
+
+function mEM(n){ return EM.filter(function(x){ return x.n === n; })[0]; }
+
+/* --- デモ用の初期データ（今日を基準に生成） --- */
+(function(){
+  var d0 = dayStart(Date.now()).getTime();
+  function at(dayOffset, h, m){
+    var d = new Date(d0); d.setDate(d.getDate() + dayOffset); d.setHours(h, m, 0, 0);
+    return d.getTime();
+  }
+  function add(n, s, e, note){
+    var m = mEM(n);
+    SCHED.push({id:evSeq++, n:n, s:s, e:e, mode:m.mode, note:note || ""});
+  }
+  add("全軍参戦",        at(0,9,0),   at(2,8,59));
+  add("熊狩行動①",      at(0,21,0),  at(0,21,30));
+  add("熊狩行動②",      at(0,22,30), at(0,23,0));
+  add("王城決戦",        at(1,20,0),  at(2,2,0), "主力は20時集合。遅れる場合は事前に連絡してください。装備の確認も忘れずに。");
+  add("峡谷合戦（一軍）", at(1,23,0),  at(2,0,0));
+  add("1号砦",           at(2,21,0),  at(2,21,30), "今回は南側から攻めます。");
+  add("SvS（準備F）",    at(3,9,0),   at(3,19,0));
+  add("SvS（戦闘F）",    at(3,20,0),  at(4,2,0), "全員参加でお願いします。");
+  add("同盟総動員",      at(5,9,0),   at(7,8,59));
+})();
+
+/* --- 表示用フォーマット --- */
+function fmtMD(ms){ var d = new Date(ms); return (d.getMonth()+1) + "/" + d.getDate(); }
+function fmtHM(ms){ var d = new Date(ms); return d.getHours() + ":" + p2(d.getMinutes()); }
+function evTime(o){
+  return o.mode === "range"
+    ? fmtMD(o.s) + " " + fmtHM(o.s) + " 〜 " + fmtMD(o.e) + " " + fmtHM(o.e)
+    : fmtHM(o.s);
+}
+function dayKey(ms){ return dayStart(ms).getTime(); }
+function onDay(o, d){ return o.s <= d + 24*H - 1 && o.e >= d; }
+
+/* --- 1行の描画 --- */
+function evRow(o, forHome){
+  var note = o.note
+    ? '<span class="nt">' + esc(o.note) + '</span>' : "";
+  var inner =
+    '<div class="nm">' + esc(o.n) + '</div>' +
+    '<div class="l2"><span class="tm">' + evTime(o) + '</span>' + note + '</div>';
+  var cls = "ev" + (noteOpen[o.id] ? " open" : "");
+
+  if (!forHome && evManage){
+    if (editNoteId === o.id){
+      return '<div class="' + cls + '">' + inner +
+        '<textarea id="nedit" maxlength="200" rows="3"></textarea>' +
+        '<div class="acts">' +
+          '<button class="mini" onclick="cancelEvNote()">キャンセル</button>' +
+          '<button class="mini ok" onclick="saveEvNote(' + o.id + ')">保存</button>' +
+        '</div></div>';
+    }
+    return '<div class="' + cls + '">' + inner +
+      '<div class="acts">' +
+        '<button class="mini" onclick="editEvNote(' + o.id + ')">備考</button>' +
+        '<button class="mini" onclick="delOcc(' + o.id + ')">削除</button>' +
+      '</div></div>';
+  }
+  if (o.note)
+    return '<button class="' + cls + '" onclick="toggleNote(' + o.id + ')">' + inner + '</button>';
+  return '<div class="' + cls + '">' + inner + '</div>';
+}
+
+function toggleNote(id){ noteOpen[id] = !noteOpen[id]; renderEvents(); renderHomeEvents(); }
+
+/* --- ホーム：今日の予定 --- */
+function renderHomeEvents(){
+  var d = dayKey(Date.now());
+  var list = SCHED.filter(function(o){ return onDay(o, d); })
+                  .sort(function(a,b){ return a.s - b.s; });
+  $("#home-ev").innerHTML = list.map(function(o){ return evRow(o, true); }).join("");
+  $("#home-ev-empty").hidden = list.length > 0;
+}
+
+/* --- イベントタブ：日付ごとの一覧 --- */
+function renderEvents(){
+  $("#ev-manage").hidden = !isAdmin || evManage;
+  $("#ev-done").hidden = !evManage;
+  $("#gantt-wrap").hidden = evManage;
+  $("#ev-form").hidden = !evManage;
+  $("#ev-title").textContent = evManage ? "イベントの管理" : "予定";
+
+  if (!evManage) renderGantt();
+
+  var today = dayKey(Date.now());
+  var last = today;
+  SCHED.forEach(function(o){ if (dayKey(o.e) > last) last = dayKey(o.e); });
+
+  var html = "", any = false;
+  for (var d = today; d <= last; d += 24*H){
+    var day = new Date(d);
+    var list = SCHED.filter(function(o){ return onDay(o, d); })
+                    .sort(function(a,b){ return a.s - b.s; });
+    if (!list.length) continue;
+    any = true;
+    html += '<div class="sec" style="padding:20px 0 0">' +
+      '<div class="daygrp">' + (day.getMonth()+1) + "/" + day.getDate() +
+      '（' + "日月火水木金土"[day.getDay()] + '）</div>' +
+      '<div class="stack">' + list.map(function(o){ return evRow(o, false); }).join("") + '</div></div>';
+  }
+  $("#ev-list").innerHTML = html;
+  $("#ev-empty").hidden = any;
+}
+
+/* --- ガントチャート --- */
+function renderGantt(){
+  var today = dayKey(Date.now());
+  var last = today;
+  SCHED.forEach(function(o){ if (dayKey(o.e) > last) last = dayKey(o.e); });
+  var days = Math.round((last - today) / (24*H)) + 1;
+  if (days < 7) days = 7;
+
+  var W = 42;
+  var head = '<div class="g-row g-head"><div class="g-lbl">イベント</div><div class="g-cells">';
+  for (var i = 0; i < days; i++){
+    var d = new Date(today + i*24*H);
+    head += '<div class="g-cell' + (i === 0 ? " today" : "") + '"><b>' +
+      (d.getMonth()+1) + "/" + d.getDate() + '</b></div>';
+  }
+  head += '</div></div>';
+
+  var rows = SCHED.slice().sort(function(a,b){ return a.s - b.s; }).map(function(o){
+    var si = Math.max(0, Math.round((dayKey(o.s) - today) / (24*H)));
+    var ei = Math.max(si, Math.round((dayKey(o.e) - today) / (24*H)));
+    var cells = "";
+    for (var i = 0; i < days; i++)
+      cells += '<div class="g-cell' + (i === 0 ? " today" : "") + '"></div>';
+    return '<div class="g-row"><div class="g-lbl">' + esc(o.n) + '</div>' +
+      '<div class="g-cells">' + cells +
+      '<div class="g-bar' + (o.mode === "start" ? " st" : "") + '" style="left:' +
+        (si*W + 3) + 'px; width:' + ((ei - si + 1)*W - 6) + 'px"></div>' +
+      '</div></div>';
+  }).join("");
+
+  $("#gantt").innerHTML = '<div style="min-width:' + (104 + days*W) + 'px">' + head + rows + '</div>';
+}
+
+function toggleEvManage(){
+  evManage = !evManage;
+  editNoteId = 0;
+  if (evManage) buildForm();
+  renderEvents();
+}
+
+/* --- 備考の個別編集（記憶はしない） --- */
+function editEvNote(id){ editNoteId = id; renderEvents();
+  var t = $("#nedit"); if (t){ t.value = SCHED.filter(function(o){return o.id===id;})[0].note; t.focus(); } }
+function cancelEvNote(){ editNoteId = 0; renderEvents(); }
+function saveEvNote(id){
+  SCHED.filter(function(o){ return o.id === id; })[0].note = $("#nedit").value;
+  editNoteId = 0; renderEvents(); renderHomeEvents();
+}
+
+function delOcc(id){
+  var o = SCHED.filter(function(x){ return x.id === id; })[0];
+  if (!confirm("「" + o.n + "」の " + fmtMD(o.s) + " の予定を削除しますか？")) return;
+  SCHED = SCHED.filter(function(x){ return x.id !== id; });
+  renderEvents(); renderHomeEvents();
+}
+
+/* ================= 登録フォーム ================= */
+function opts(list, sel){
+  return '<option value="">--</option>' + list.map(function(v){
+    return '<option value="' + v[0] + '"' + (String(v[0]) === String(sel) ? " selected" : "") +
+           '>' + v[1] + '</option>';
+  }).join("");
+}
+function range(a, b, step){
+  var r = []; for (var i = a; i <= b; i += (step || 1)) r.push([i, i]); return r;
+}
+function daysIn(mon){ return new Date(yearFor(mon), mon, 0).getDate(); }
+function yearFor(mon){
+  var t = new Date(), cm = t.getMonth() + 1, y = t.getFullYear();
+  if (mon < cm - 6) y += 1; else if (mon > cm + 6) y -= 1;
+  return y;
+}
+
+function buildForm(){
+  ["s","e"].forEach(function(p){
+    $("#" + p + "-mon").innerHTML = opts(range(1,12));
+    $("#" + p + "-day").innerHTML = opts([]);
+    $("#" + p + "-hh").innerHTML  = opts(range(0,23));
+    $("#" + p + "-mm").innerHTML  = opts(range(0,55,5).map(function(v){ return [v[0], p2(v[0])]; }));
+  });
+  fillNames("");
+  clearFormSilent();
+}
+
+function fillNames(q){
+  var list = EM.slice().sort(function(a,b){ return a.y < b.y ? -1 : a.y > b.y ? 1 : 0; });
+  if (q) list = list.filter(function(m){ return m.n.toLowerCase().indexOf(q.toLowerCase()) >= 0; });
+  $("#f-name").innerHTML = '<option value="">選択してください</option>' +
+    list.map(function(m){
+      return '<option value="' + esc(m.n) + '"' + (m.n === fSel ? " selected" : "") + '>' + esc(m.n) + '</option>';
+    }).join("");
+  return list.length;
+}
+
+function onSearch(){
+  var q = $("#f-search").value.trim();
+  var n = fillNames(q);
+  var hint = $("#f-newhint");
+  if (q && n === 0){
+    hint.hidden = false;
+    hint.textContent = "該当なし。「" + q + "」を新規イベントとして登録します";
+    fSel = "";
+  } else {
+    hint.hidden = true;
+  }
+  updateReq();
+}
+
+function onPickName(){
+  fSel = $("#f-name").value;
+  if (fSel){
+    $("#f-search").value = "";
+    $("#f-newhint").hidden = true;
+    fillNames("");
+    var m = mEM(fSel);
+    if (m.sh !== null){
+      $("#s-hh").value = m.sh; $("#s-mm").value = m.sm;
+      $("#e-hh").value = m.eh; $("#e-mm").value = m.em;
+    }
+    $("#f-note").value = m.note || "";
+    countFNote();
+    document.querySelectorAll('input[name="fmode"]').forEach(function(r){ r.checked = (r.value === m.mode); });
+    endAuto = true;
+    syncEnd();
+  }
+  $("#f-renamerow").hidden = !fSel;
+  updateReq();
+}
+
+function onMonth(p){
+  var mon = +$("#" + p + "-mon").value;
+  var cur = $("#" + p + "-day").value;
+  $("#" + p + "-day").innerHTML = mon ? opts(range(1, daysIn(mon)), cur) : opts([]);
+  if (p === "s") syncEnd();
+  updateReq();
+}
+
+function endManual(){ endAuto = false; updateReq(); }
+function onMode(){ updateReq(); }
+function countFNote(){ $("#f-note-cnt").textContent = $("#f-note").value.length + " / 200"; }
+
+/* 終了時刻が開始時刻以前なら、終了日を自動で翌日にする */
+function syncEnd(){
+  updateReq();
+  if (!endAuto) return;
+  var sm = +$("#s-mon").value, sd = +$("#s-day").value;
+  var sh = $("#s-hh").value, smi = $("#s-mm").value;
+  var eh = $("#e-hh").value, emi = $("#e-mm").value;
+  if (!sm || !sd || sh === "" || smi === "" || eh === "" || emi === "") return;
+  var d = new Date(yearFor(sm), sm - 1, sd);
+  if ((+eh)*60 + (+emi) <= (+sh)*60 + (+smi)) d.setDate(d.getDate() + 1);
+  $("#e-mon").value = d.getMonth() + 1;
+  $("#e-day").innerHTML = opts(range(1, daysIn(d.getMonth()+1)), d.getDate());
+  updateReq();
+}
+
+function formName(){ return fSel || $("#f-search").value.trim(); }
+function modeVal(){
+  var r = document.querySelector('input[name="fmode"]:checked');
+  return r ? r.value : "";
+}
+function dtOf(p){
+  var mo = +$("#"+p+"-mon").value, d = +$("#"+p+"-day").value;
+  var h = $("#"+p+"-hh").value, mi = $("#"+p+"-mm").value;
+  if (!mo || !d || h === "" || mi === "") return null;
+  return new Date(yearFor(mo), mo - 1, d, +h, +mi, 0, 0).getTime();
+}
+
+function updateReq(){
+  $("#req-name").hidden  = !!formName();
+  $("#req-start").hidden = dtOf("s") !== null;
+  $("#req-end").hidden   = dtOf("e") !== null;
+  $("#req-mode").hidden  = !!modeVal();
+}
+
+function clearFormSilent(){
+  fSel = ""; endAuto = true;
+  $("#f-search").value = "";
+  $("#f-newhint").hidden = true;
+  $("#f-renamerow").hidden = true;
+  fillNames("");
+  ["s","e"].forEach(function(p){
+    $("#"+p+"-mon").value = ""; $("#"+p+"-hh").value = ""; $("#"+p+"-mm").value = "";
+    $("#"+p+"-day").innerHTML = opts([]);
+  });
+  document.querySelectorAll('input[name="fmode"]').forEach(function(r){ r.checked = false; });
+  $("#f-note").value = ""; countFNote();
+  updateReq();
+}
+
+function clearForm(){
+  if (!confirm("入力内容を全てクリアしますか？")) return;
+  clearFormSilent();
+}
+
+function submitEvent(){
+  updateReq();
+  var name = formName(), s = dtOf("s"), e = dtOf("e"), mode = modeVal();
+  if (!name || s === null || e === null || !mode){
+    alert("赤い * の付いた項目を入力してください。");
+    return;
+  }
+  if (e <= s){ alert("終了日時が開始日時より前になっています。"); return; }
+  if (!confirm("この内容でイベントを登録しますか？")) return;
+
+  var note = $("#f-note").value;
+  var m = mEM(name);
+  if (!m){
+    m = {n:name, y:name, sh:null, sm:null, eh:null, em:null, mode:mode, note:""};
+    EM.push(m);
+  }
+  var sd = new Date(s), ed = new Date(e);
+  m.sh = sd.getHours(); m.sm = sd.getMinutes();
+  m.eh = ed.getHours(); m.em = ed.getMinutes();
+  m.mode = mode; m.note = note;
+
+  SCHED.push({id:evSeq++, n:name, s:s, e:e, mode:mode, note:note});
+  clearFormSilent();
+  renderEvents(); renderHomeEvents();
+}
+
+/* --- イベント名の変更 --- */
+function openRename(){
+  if (!fSel) return;
+  $("#rename-input").value = fSel;
+  $("#rename-modal").hidden = false;
+  $("#rename-input").focus();
+}
+function closeRename(){ $("#rename-modal").hidden = true; }
+function doRename(){
+  var nn = $("#rename-input").value.trim();
+  if (!nn){ alert("イベント名を入力してください。"); return; }
+  if (nn !== fSel && mEM(nn)){ alert("同じ名前のイベントが既にあります。"); return; }
+  var m = mEM(fSel);
+  var old = fSel;
+  m.n = nn;
+  SCHED.forEach(function(o){ if (o.n === old) o.n = nn; });
+  fSel = nn;
+  closeRename();
+  fillNames("");
+  $("#f-name").value = nn;
+  renderEvents(); renderHomeEvents();
 }
 
 function renderPending(){
@@ -786,6 +1306,8 @@ renderPending();
 renderTabs();
 renderNotice();
 renderSTSection();
+renderEvents();
+renderHomeEvents();
 tick();
 setInterval(tick, 1000);
 </script>
