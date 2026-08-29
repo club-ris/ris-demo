@@ -203,14 +203,17 @@ button.row:active{background:var(--surface-2)}
 .counter{margin-right:auto; font-size:11.5px; color:var(--text-dim);
   font-variant-numeric:tabular-nums}
 /* ---- イベント行 ---- */
-.ev{display:flex; flex-direction:column; gap:8px; padding:10px 14px;
+.ev{display:flex; flex-direction:column; gap:6px; padding:11px 14px;
   background:var(--surface); border-radius:4px}
-.ev .nm{font-size:15px; line-height:1.35}
-.ev .l2{display:flex; align-items:baseline; gap:8px; min-width:0}
-.ev .tm{font-family:var(--serif); font-size:13.5px; color:var(--gold-bright);
+.ev .l1{display:flex; align-items:center; gap:10px}
+.ev .nm{flex:1; min-width:0; font-size:15px; line-height:1.35;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.ev .ts{font-family:var(--serif); font-size:17px; color:var(--gold-bright);
   font-variant-numeric:tabular-nums; white-space:nowrap; flex:0 0 auto}
+.ev .tr{font-size:12.5px; color:var(--text); font-variant-numeric:tabular-nums;
+  white-space:nowrap; flex:0 0 auto}
 .ev .nt{font-size:11px; color:var(--text-dim); line-height:1.5;
-  overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0}
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
 .ev.open .nt{white-space:normal; overflow:visible}
 button.ev{width:100%; text-align:left; font:inherit; color:inherit; border:0; cursor:pointer}
 .ev .acts{display:flex; gap:7px; justify-content:flex-end}
@@ -224,8 +227,8 @@ button.ev:active{background:var(--surface-2)}
 .gantt{overflow-x:auto; -webkit-overflow-scrolling:touch;
   background:var(--surface); border-radius:4px; padding:8px 0}
 .g-row{display:flex; align-items:center; height:30px}
-.g-lbl{position:sticky; left:0; z-index:2; flex:0 0 104px; padding:0 8px 0 12px;
-  background:var(--surface); font-size:11.5px; color:var(--text);
+.g-lbl{position:sticky; left:0; z-index:2; flex:0 0 132px; padding:0 8px 0 12px;
+  background:var(--surface); font-size:10px; color:var(--text);
   overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
 .g-head .g-lbl{color:var(--text-dim)}
 .g-cells{display:flex; position:relative; flex:0 0 auto}
@@ -259,6 +262,19 @@ button.ev:active{background:var(--surface-2)}
 .hint2{margin:0; font-size:11.5px; color:var(--gold-bright)}
 
 /* ---- 名前変更モーダル ---- */
+.searchwrap{position:relative}
+.sug{position:absolute; z-index:40; left:0; right:0; top:100%; margin-top:3px;
+  max-height:230px; overflow-y:auto; background:var(--surface-2);
+  border:1px solid var(--gold-dim); border-radius:4px}
+.sug button{display:block; width:100%; min-height:44px; padding:11px 14px;
+  background:none; border:0; border-bottom:1px solid var(--rule);
+  color:var(--text); font:inherit; font-size:14px; text-align:left; cursor:pointer}
+.sug button:last-child{border-bottom:0}
+.sug button:active{background:var(--surface)}
+.toast{position:fixed; left:50%; top:50%; transform:translate(-50%,-50%); z-index:70;
+  padding:15px 30px; border-radius:4px; background:rgba(18,16,12,.96);
+  border:1px solid var(--gold); color:var(--gold-bright); font-size:15px;
+  letter-spacing:.08em; white-space:nowrap}
 .modal{position:fixed; inset:0; z-index:60; background:rgba(0,0,0,.72);
   display:flex; align-items:center; justify-content:center; padding:24px}
 .modal-box{width:100%; max-width:340px; padding:18px; border-radius:6px;
@@ -346,7 +362,10 @@ button.ev:active{background:var(--surface-2)}
           <div class="form">
             <div class="fld">
               <label>イベント名 <span class="req" id="req-name">*</span></label>
-              <input type="search" id="f-search" placeholder="キーワードで検索（部分一致）" oninput="onSearch()">
+              <div class="searchwrap">
+                <input type="search" id="f-search" placeholder="キーワードで検索（部分一致）" oninput="onSearch()" autocomplete="off">
+                <div class="sug" id="f-sug" hidden></div>
+              </div>
               <div class="frow">
                 <select id="f-name" onchange="onPickName()"></select>
               </div>
@@ -403,6 +422,18 @@ button.ev:active{background:var(--surface-2)}
         <p class="empty" id="ev-empty" hidden>登録されたイベントはありません</p>
       </div>
     </section>
+
+    <div class="toast" id="toast" hidden></div>
+
+    <div class="modal" id="dlg" hidden>
+      <div class="modal-box">
+        <p id="dlg-msg"></p>
+        <div class="frow end">
+          <button class="mini" id="dlg-no" onclick="dlgNo()">キャンセル</button>
+          <button class="mini ok" id="dlg-yes" onclick="dlgYes()">OK</button>
+        </div>
+      </div>
+    </div>
 
     <div class="modal" id="rename-modal" hidden>
       <div class="modal-box">
@@ -877,6 +908,34 @@ function saveNotice(){
   renderHomeEvents();
 }
 
+/* ================= 共通ダイアログ / トースト ================= */
+var _askCb = null;
+function ask(msg, cb){
+  _askCb = cb;
+  $("#dlg-msg").textContent = msg;
+  $("#dlg-no").hidden = false;
+  $("#dlg-yes").textContent = "OK";
+  $("#dlg").hidden = false;
+}
+function info(msg){
+  _askCb = null;
+  $("#dlg-msg").textContent = msg;
+  $("#dlg-no").hidden = true;
+  $("#dlg-yes").textContent = "閉じる";
+  $("#dlg").hidden = false;
+}
+function dlgYes(){ var cb = _askCb; _askCb = null; $("#dlg").hidden = true; if (cb) cb(); }
+function dlgNo(){ _askCb = null; $("#dlg").hidden = true; }
+
+var _toastT = null;
+function toast(msg){
+  var t = $("#toast");
+  t.textContent = msg;
+  t.hidden = false;
+  clearTimeout(_toastT);
+  _toastT = setTimeout(function(){ t.hidden = true; }, 1100);
+}
+
 /* ================= イベント ================= */
 /* EM = イベント名マスタ（時刻・備考・表示方法を記憶。日付は記憶しない）
    y = よみがな（あいうえお順の並べ替え用）
@@ -926,16 +985,11 @@ var editNoteId = 0;
 
 function mEM(n){ return EM.filter(function(x){ return x.n === n; })[0]; }
 
-/* --- デモ用の初期データ（今日を基準に生成） --- */
 (function(){
   var d0 = dayStart(Date.now()).getTime();
-  function at(dayOffset, h, m){
-    var d = new Date(d0); d.setDate(d.getDate() + dayOffset); d.setHours(h, m, 0, 0);
-    return d.getTime();
-  }
+  function at(o, h, m){ var d = new Date(d0); d.setDate(d.getDate()+o); d.setHours(h,m,0,0); return d.getTime(); }
   function add(n, s, e, note){
-    var m = mEM(n);
-    SCHED.push({id:evSeq++, n:n, s:s, e:e, mode:m.mode, note:note || ""});
+    SCHED.push({id:evSeq++, n:n, s:s, e:e, mode:mEM(n).mode, note:note || ""});
   }
   add("全軍参戦",        at(0,9,0),   at(2,8,59));
   add("熊狩行動①",      at(0,21,0),  at(0,21,30));
@@ -948,40 +1002,32 @@ function mEM(n){ return EM.filter(function(x){ return x.n === n; })[0]; }
   add("同盟総動員",      at(5,9,0),   at(7,8,59));
 })();
 
-/* --- 表示用フォーマット --- */
 function fmtMD(ms){ var d = new Date(ms); return (d.getMonth()+1) + "/" + d.getDate(); }
 function fmtHM(ms){ var d = new Date(ms); return d.getHours() + ":" + p2(d.getMinutes()); }
 function evTime(o){
   return o.mode === "range"
-    ? fmtMD(o.s) + " " + fmtHM(o.s) + " 〜 " + fmtMD(o.e) + " " + fmtHM(o.e)
-    : fmtHM(o.s);
+    ? '<div class="tr">' + fmtMD(o.s) + " " + fmtHM(o.s) + " 〜 " + fmtMD(o.e) + " " + fmtHM(o.e) + '</div>'
+    : '<div class="ts">' + fmtHM(o.s) + '</div>';
 }
 function dayKey(ms){ return dayStart(ms).getTime(); }
 function onDay(o, d){ return o.s <= d + 24*H - 1 && o.e >= d; }
 
-/* --- 1行の描画 --- */
 function evRow(o, forHome){
-  var note = o.note
-    ? '<span class="nt">' + esc(o.note) + '</span>' : "";
   var inner =
-    '<div class="nm">' + esc(o.n) + '</div>' +
-    '<div class="l2"><span class="tm">' + evTime(o) + '</span>' + note + '</div>';
+    '<div class="l1"><div class="nm">' + esc(o.n) + '</div>' + evTime(o) + '</div>' +
+    (o.note ? '<div class="nt">' + esc(o.note) + '</div>' : "");
   var cls = "ev" + (noteOpen[o.id] ? " open" : "");
 
   if (!forHome && evManage){
     if (editNoteId === o.id){
       return '<div class="' + cls + '">' + inner +
         '<textarea id="nedit" maxlength="200" rows="3"></textarea>' +
-        '<div class="acts">' +
-          '<button class="mini" onclick="cancelEvNote()">キャンセル</button>' +
-          '<button class="mini ok" onclick="saveEvNote(' + o.id + ')">保存</button>' +
-        '</div></div>';
+        '<div class="acts"><button class="mini" onclick="cancelEvNote()">キャンセル</button>' +
+        '<button class="mini ok" onclick="saveEvNote(' + o.id + ')">保存</button></div></div>';
     }
     return '<div class="' + cls + '">' + inner +
-      '<div class="acts">' +
-        '<button class="mini" onclick="editEvNote(' + o.id + ')">備考</button>' +
-        '<button class="mini" onclick="delOcc(' + o.id + ')">削除</button>' +
-      '</div></div>';
+      '<div class="acts"><button class="mini" onclick="editEvNote(' + o.id + ')">備考</button>' +
+      '<button class="mini" onclick="delOcc(' + o.id + ')">削除</button></div></div>';
   }
   if (o.note)
     return '<button class="' + cls + '" onclick="toggleNote(' + o.id + ')">' + inner + '</button>';
@@ -990,54 +1036,45 @@ function evRow(o, forHome){
 
 function toggleNote(id){ noteOpen[id] = !noteOpen[id]; renderEvents(); renderHomeEvents(); }
 
-/* --- ホーム：今日の予定 --- */
 function renderHomeEvents(){
   var d = dayKey(Date.now());
-  var list = SCHED.filter(function(o){ return onDay(o, d); })
-                  .sort(function(a,b){ return a.s - b.s; });
+  var list = SCHED.filter(function(o){ return onDay(o, d); }).sort(function(a,b){ return a.s - b.s; });
   $("#home-ev").innerHTML = list.map(function(o){ return evRow(o, true); }).join("");
   $("#home-ev-empty").hidden = list.length > 0;
 }
 
-/* --- イベントタブ：日付ごとの一覧 --- */
 function renderEvents(){
   $("#ev-manage").hidden = !isAdmin || evManage;
   $("#ev-done").hidden = !evManage;
   $("#gantt-wrap").hidden = evManage;
   $("#ev-form").hidden = !evManage;
   $("#ev-title").textContent = evManage ? "イベントの管理" : "予定";
-
   if (!evManage) renderGantt();
 
-  var today = dayKey(Date.now());
-  var last = today;
+  var today = dayKey(Date.now()), last = today;
   SCHED.forEach(function(o){ if (dayKey(o.e) > last) last = dayKey(o.e); });
 
   var html = "", any = false;
   for (var d = today; d <= last; d += 24*H){
     var day = new Date(d);
-    var list = SCHED.filter(function(o){ return onDay(o, d); })
-                    .sort(function(a,b){ return a.s - b.s; });
+    var list = SCHED.filter(function(o){ return onDay(o, d); }).sort(function(a,b){ return a.s - b.s; });
     if (!list.length) continue;
     any = true;
-    html += '<div class="sec" style="padding:20px 0 0">' +
-      '<div class="daygrp">' + (day.getMonth()+1) + "/" + day.getDate() +
-      '（' + "日月火水木金土"[day.getDay()] + '）</div>' +
+    html += '<div class="sec" style="padding:20px 0 0"><div class="daygrp">' +
+      (day.getMonth()+1) + "/" + day.getDate() + '（' + "日月火水木金土"[day.getDay()] + '）</div>' +
       '<div class="stack">' + list.map(function(o){ return evRow(o, false); }).join("") + '</div></div>';
   }
   $("#ev-list").innerHTML = html;
   $("#ev-empty").hidden = any;
 }
 
-/* --- ガントチャート --- */
 function renderGantt(){
-  var today = dayKey(Date.now());
-  var last = today;
+  var today = dayKey(Date.now()), last = today;
   SCHED.forEach(function(o){ if (dayKey(o.e) > last) last = dayKey(o.e); });
   var days = Math.round((last - today) / (24*H)) + 1;
   if (days < 7) days = 7;
+  var W = 42, LBL = 132;
 
-  var W = 42;
   var head = '<div class="g-row g-head"><div class="g-lbl">イベント</div><div class="g-cells">';
   for (var i = 0; i < days; i++){
     var d = new Date(today + i*24*H);
@@ -1050,99 +1087,118 @@ function renderGantt(){
     var si = Math.max(0, Math.round((dayKey(o.s) - today) / (24*H)));
     var ei = Math.max(si, Math.round((dayKey(o.e) - today) / (24*H)));
     var cells = "";
-    for (var i = 0; i < days; i++)
-      cells += '<div class="g-cell' + (i === 0 ? " today" : "") + '"></div>';
-    return '<div class="g-row"><div class="g-lbl">' + esc(o.n) + '</div>' +
-      '<div class="g-cells">' + cells +
-      '<div class="g-bar' + (o.mode === "start" ? " st" : "") + '" style="left:' +
-        (si*W + 3) + 'px; width:' + ((ei - si + 1)*W - 6) + 'px"></div>' +
-      '</div></div>';
+    for (var i = 0; i < days; i++) cells += '<div class="g-cell' + (i === 0 ? " today" : "") + '"></div>';
+    return '<div class="g-row"><div class="g-lbl">' + esc(o.n) + '</div><div class="g-cells">' + cells +
+      '<div class="g-bar' + (o.mode === "start" ? " st" : "") + '" style="left:' + (si*W + 3) +
+      'px; width:' + ((ei - si + 1)*W - 6) + 'px"></div></div></div>';
   }).join("");
 
-  $("#gantt").innerHTML = '<div style="min-width:' + (104 + days*W) + 'px">' + head + rows + '</div>';
+  $("#gantt").innerHTML = '<div style="min-width:' + (LBL + days*W) + 'px">' + head + rows + '</div>';
 }
 
+function formDirty(){
+  return !!(formName() || dtOf("s") || dtOf("e") || modeVal() || $("#f-note").value);
+}
 function toggleEvManage(){
+  if (evManage && formDirty()){
+    ask("入力中の内容が残っています。管理を終了しますか？", function(){ evManage = false; editNoteId = 0; renderEvents(); });
+    return;
+  }
   evManage = !evManage;
   editNoteId = 0;
   if (evManage) buildForm();
   renderEvents();
 }
 
-/* --- 備考の個別編集（記憶はしない） --- */
-function editEvNote(id){ editNoteId = id; renderEvents();
-  var t = $("#nedit"); if (t){ t.value = SCHED.filter(function(o){return o.id===id;})[0].note; t.focus(); } }
+function editEvNote(id){
+  editNoteId = id; renderEvents();
+  var t = $("#nedit");
+  if (t){ t.value = SCHED.filter(function(o){ return o.id === id; })[0].note; t.focus(); }
+}
 function cancelEvNote(){ editNoteId = 0; renderEvents(); }
 function saveEvNote(id){
   SCHED.filter(function(o){ return o.id === id; })[0].note = $("#nedit").value;
-  editNoteId = 0; renderEvents(); renderHomeEvents();
+  editNoteId = 0; renderEvents(); renderHomeEvents(); toast("備考を保存しました");
 }
 
 function delOcc(id){
   var o = SCHED.filter(function(x){ return x.id === id; })[0];
-  if (!confirm("「" + o.n + "」の " + fmtMD(o.s) + " の予定を削除しますか？")) return;
-  SCHED = SCHED.filter(function(x){ return x.id !== id; });
-  renderEvents(); renderHomeEvents();
+  ask("「" + o.n + "」の " + fmtMD(o.s) + " の予定を削除しますか？", function(){
+    SCHED = SCHED.filter(function(x){ return x.id !== id; });
+    renderEvents(); renderHomeEvents(); toast("削除しました");
+  });
 }
 
 /* ================= 登録フォーム ================= */
 function opts(list, sel){
   return '<option value="">--</option>' + list.map(function(v){
-    return '<option value="' + v[0] + '"' + (String(v[0]) === String(sel) ? " selected" : "") +
-           '>' + v[1] + '</option>';
+    return '<option value="' + v[0] + '"' + (String(v[0]) === String(sel) ? " selected" : "") + '>' + v[1] + '</option>';
   }).join("");
 }
-function range(a, b, step){
-  var r = []; for (var i = a; i <= b; i += (step || 1)) r.push([i, i]); return r;
-}
-function daysIn(mon){ return new Date(yearFor(mon), mon, 0).getDate(); }
+function range(a, b, step){ var r = []; for (var i = a; i <= b; i += (step||1)) r.push([i,i]); return r; }
 function yearFor(mon){
-  var t = new Date(), cm = t.getMonth() + 1, y = t.getFullYear();
+  var t = new Date(), cm = t.getMonth()+1, y = t.getFullYear();
   if (mon < cm - 6) y += 1; else if (mon > cm + 6) y -= 1;
   return y;
 }
+function daysIn(mon){ return new Date(yearFor(mon), mon, 0).getDate(); }
+function sortedEM(){ return EM.slice().sort(function(a,b){ return a.y < b.y ? -1 : a.y > b.y ? 1 : 0; }); }
 
 function buildForm(){
   ["s","e"].forEach(function(p){
-    $("#" + p + "-mon").innerHTML = opts(range(1,12));
-    $("#" + p + "-day").innerHTML = opts([]);
-    $("#" + p + "-hh").innerHTML  = opts(range(0,23));
-    $("#" + p + "-mm").innerHTML  = opts(range(0,55,5).map(function(v){ return [v[0], p2(v[0])]; }));
+    $("#"+p+"-mon").innerHTML = opts(range(1,12));
+    $("#"+p+"-day").innerHTML = opts([]);
+    $("#"+p+"-hh").innerHTML  = opts(range(0,23));
+    $("#"+p+"-mm").innerHTML  = opts(range(0,55,5).map(function(v){ return [v[0], p2(v[0])]; }));
   });
-  fillNames("");
+  fillNames();
   clearFormSilent();
 }
 
-function fillNames(q){
-  var list = EM.slice().sort(function(a,b){ return a.y < b.y ? -1 : a.y > b.y ? 1 : 0; });
-  if (q) list = list.filter(function(m){ return m.n.toLowerCase().indexOf(q.toLowerCase()) >= 0; });
+function fillNames(){
   $("#f-name").innerHTML = '<option value="">選択してください</option>' +
-    list.map(function(m){
+    sortedEM().map(function(m){
       return '<option value="' + esc(m.n) + '"' + (m.n === fSel ? " selected" : "") + '>' + esc(m.n) + '</option>';
     }).join("");
-  return list.length;
 }
 
+/* 検索ボックスの下に候補を出す */
 function onSearch(){
   var q = $("#f-search").value.trim();
-  var n = fillNames(q);
-  var hint = $("#f-newhint");
-  if (q && n === 0){
+  var sug = $("#f-sug"), hint = $("#f-newhint");
+  if (!q){ sug.hidden = true; hint.hidden = true; updateReq(); return; }
+  var hit = sortedEM().filter(function(m){ return m.n.toLowerCase().indexOf(q.toLowerCase()) >= 0; });
+  if (hit.length){
+    sug.innerHTML = hit.map(function(m){
+      return '<button type="button" onclick="pickSug(this.dataset.n)" data-n="' + esc(m.n) + '">' + esc(m.n) + '</button>';
+    }).join("");
+    sug.hidden = false;
+    hint.hidden = true;
+  } else {
+    sug.hidden = true;
     hint.hidden = false;
     hint.textContent = "該当なし。「" + q + "」を新規イベントとして登録します";
     fSel = "";
-  } else {
-    hint.hidden = true;
+    $("#f-name").value = "";
+    $("#f-renamerow").hidden = true;
   }
   updateReq();
+}
+
+function pickSug(name){
+  $("#f-search").value = "";
+  $("#f-sug").hidden = true;
+  $("#f-newhint").hidden = true;
+  $("#f-name").value = name;
+  onPickName();
 }
 
 function onPickName(){
   fSel = $("#f-name").value;
   if (fSel){
     $("#f-search").value = "";
+    $("#f-sug").hidden = true;
     $("#f-newhint").hidden = true;
-    fillNames("");
     var m = mEM(fSel);
     if (m.sh !== null){
       $("#s-hh").value = m.sh; $("#s-mm").value = m.sm;
@@ -1159,44 +1215,36 @@ function onPickName(){
 }
 
 function onMonth(p){
-  var mon = +$("#" + p + "-mon").value;
-  var cur = $("#" + p + "-day").value;
-  $("#" + p + "-day").innerHTML = mon ? opts(range(1, daysIn(mon)), cur) : opts([]);
+  var mon = +$("#"+p+"-mon").value, cur = $("#"+p+"-day").value;
+  $("#"+p+"-day").innerHTML = mon ? opts(range(1, daysIn(mon)), cur) : opts([]);
   if (p === "s") syncEnd();
   updateReq();
 }
-
 function endManual(){ endAuto = false; updateReq(); }
 function onMode(){ updateReq(); }
 function countFNote(){ $("#f-note-cnt").textContent = $("#f-note").value.length + " / 200"; }
 
-/* 終了時刻が開始時刻以前なら、終了日を自動で翌日にする */
 function syncEnd(){
   updateReq();
   if (!endAuto) return;
   var sm = +$("#s-mon").value, sd = +$("#s-day").value;
-  var sh = $("#s-hh").value, smi = $("#s-mm").value;
-  var eh = $("#e-hh").value, emi = $("#e-mm").value;
+  var sh = $("#s-hh").value, smi = $("#s-mm").value, eh = $("#e-hh").value, emi = $("#e-mm").value;
   if (!sm || !sd || sh === "" || smi === "" || eh === "" || emi === "") return;
-  var d = new Date(yearFor(sm), sm - 1, sd);
-  if ((+eh)*60 + (+emi) <= (+sh)*60 + (+smi)) d.setDate(d.getDate() + 1);
-  $("#e-mon").value = d.getMonth() + 1;
+  var d = new Date(yearFor(sm), sm-1, sd);
+  if ((+eh)*60 + (+emi) <= (+sh)*60 + (+smi)) d.setDate(d.getDate()+1);
+  $("#e-mon").value = d.getMonth()+1;
   $("#e-day").innerHTML = opts(range(1, daysIn(d.getMonth()+1)), d.getDate());
   updateReq();
 }
 
 function formName(){ return fSel || $("#f-search").value.trim(); }
-function modeVal(){
-  var r = document.querySelector('input[name="fmode"]:checked');
-  return r ? r.value : "";
-}
+function modeVal(){ var r = document.querySelector('input[name="fmode"]:checked'); return r ? r.value : ""; }
 function dtOf(p){
   var mo = +$("#"+p+"-mon").value, d = +$("#"+p+"-day").value;
   var h = $("#"+p+"-hh").value, mi = $("#"+p+"-mm").value;
   if (!mo || !d || h === "" || mi === "") return null;
-  return new Date(yearFor(mo), mo - 1, d, +h, +mi, 0, 0).getTime();
+  return new Date(yearFor(mo), mo-1, d, +h, +mi, 0, 0).getTime();
 }
-
 function updateReq(){
   $("#req-name").hidden  = !!formName();
   $("#req-start").hidden = dtOf("s") !== null;
@@ -1207,9 +1255,11 @@ function updateReq(){
 function clearFormSilent(){
   fSel = ""; endAuto = true;
   $("#f-search").value = "";
+  $("#f-sug").hidden = true;
   $("#f-newhint").hidden = true;
   $("#f-renamerow").hidden = true;
-  fillNames("");
+  fillNames();
+  $("#f-name").value = "";
   ["s","e"].forEach(function(p){
     $("#"+p+"-mon").value = ""; $("#"+p+"-hh").value = ""; $("#"+p+"-mm").value = "";
     $("#"+p+"-day").innerHTML = opts([]);
@@ -1218,39 +1268,28 @@ function clearFormSilent(){
   $("#f-note").value = ""; countFNote();
   updateReq();
 }
-
-function clearForm(){
-  if (!confirm("入力内容を全てクリアしますか？")) return;
-  clearFormSilent();
-}
+function clearForm(){ ask("入力内容を全てクリアしますか？", function(){ clearFormSilent(); toast("クリアしました"); }); }
 
 function submitEvent(){
   updateReq();
   var name = formName(), s = dtOf("s"), e = dtOf("e"), mode = modeVal();
-  if (!name || s === null || e === null || !mode){
-    alert("赤い * の付いた項目を入力してください。");
-    return;
-  }
-  if (e <= s){ alert("終了日時が開始日時より前になっています。"); return; }
-  if (!confirm("この内容でイベントを登録しますか？")) return;
-
-  var note = $("#f-note").value;
-  var m = mEM(name);
-  if (!m){
-    m = {n:name, y:name, sh:null, sm:null, eh:null, em:null, mode:mode, note:""};
-    EM.push(m);
-  }
-  var sd = new Date(s), ed = new Date(e);
-  m.sh = sd.getHours(); m.sm = sd.getMinutes();
-  m.eh = ed.getHours(); m.em = ed.getMinutes();
-  m.mode = mode; m.note = note;
-
-  SCHED.push({id:evSeq++, n:name, s:s, e:e, mode:mode, note:note});
-  clearFormSilent();
-  renderEvents(); renderHomeEvents();
+  if (!name || s === null || e === null || !mode){ info("朱色の * が付いた項目を入力してください。"); return; }
+  if (e <= s){ info("終了日時が開始日時より前になっています。"); return; }
+  ask("この内容でイベントを登録しますか？", function(){
+    var note = $("#f-note").value;
+    var m = mEM(name);
+    if (!m){ m = {n:name, y:name, sh:null, sm:null, eh:null, em:null, mode:mode, note:""}; EM.push(m); }
+    var sd = new Date(s), ed = new Date(e);
+    m.sh = sd.getHours(); m.sm = sd.getMinutes();
+    m.eh = ed.getHours(); m.em = ed.getMinutes();
+    m.mode = mode; m.note = note;
+    SCHED.push({id:evSeq++, n:name, s:s, e:e, mode:mode, note:note});
+    clearFormSilent();
+    renderEvents(); renderHomeEvents();
+    toast("登録完了");
+  });
 }
 
-/* --- イベント名の変更 --- */
 function openRename(){
   if (!fSel) return;
   $("#rename-input").value = fSel;
@@ -1260,17 +1299,17 @@ function openRename(){
 function closeRename(){ $("#rename-modal").hidden = true; }
 function doRename(){
   var nn = $("#rename-input").value.trim();
-  if (!nn){ alert("イベント名を入力してください。"); return; }
-  if (nn !== fSel && mEM(nn)){ alert("同じ名前のイベントが既にあります。"); return; }
-  var m = mEM(fSel);
+  if (!nn){ info("イベント名を入力してください。"); return; }
+  if (nn !== fSel && mEM(nn)){ info("同じ名前のイベントが既にあります。"); return; }
   var old = fSel;
-  m.n = nn;
+  mEM(old).n = nn;
   SCHED.forEach(function(o){ if (o.n === old) o.n = nn; });
   fSel = nn;
   closeRename();
-  fillNames("");
+  fillNames();
   $("#f-name").value = nn;
   renderEvents(); renderHomeEvents();
+  toast("イベント名を変更しました");
 }
 
 function renderPending(){
