@@ -585,7 +585,6 @@ button.ev:active{background:var(--surface-2)}
           <div class="kv"><span>ステーション</span><b>ユキ、カズ</b></div>
           <div class="kv"><span>スケジュール</span><b>ミナト</b></div>
           <div class="kv"><span>アンケート</span><b>レン</b></div>
-          <div class="kv"><span>メンバー承認</span><b>ソラ</b></div>
         </div>
       </div>
       <div class="sec">
@@ -1169,7 +1168,9 @@ function renderNotice(){
     $("#ntext").value = NOTICE.text;
     countNotice();
   } else {
-    body.innerHTML = '<div class="notice-text">' + esc(NOTICE.text) + '</div>';
+    body.innerHTML = NOTICE.text.trim()
+      ? '<div class="notice-text">' + esc(NOTICE.text) + '</div>'
+      : '<div class="notice-text" style="color:var(--text-dim)">お知らせはありません。</div>';
   }
 }
 
