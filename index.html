@@ -47,6 +47,8 @@ body{
   padding:calc(13px + env(safe-area-inset-top)) 18px 11px;
   background:#131417; border-bottom:1px solid var(--rule);
 }
+.leave{background:none; border:0; color:var(--warn); font:inherit; font-size:12px;
+  padding:8px 6px; min-height:42px; cursor:pointer}
 .appbar h1{margin:0; flex:1; font-family:var(--serif); font-weight:500;
   font-size:18px; letter-spacing:.12em; color:var(--text)}
 .demobar{display:flex; justify-content:space-between; align-items:center; gap:10px;
@@ -323,10 +325,12 @@ button.ev:active{background:var(--surface-2)}
 </section>
 
 <div id="app" hidden>
-  <header class="appbar"><h1>CLUB＊RIS</h1></header>
+  <header class="appbar"><h1>CLUB＊RIS</h1>
+    <button class="leave" onclick="leaveApp()">退会</button>
+  </header>
   <div class="demobar">
     <span>デモ版 ／ データは仮のものです</span>
-    <button onclick="toggleRole()" id="rolebtn">管理者として表示</button>
+    <button onclick="toggleRole()" id="rolebtn">マスター権限で表示</button>
   </div>
 
   <main class="content">
@@ -646,7 +650,13 @@ var PENDING = [
   {n:"Hanako", v:"メール登録",       w:"10/14 18:02"}
 ];
 
-var isAdmin = true;
+/* 権限：master=マスター権限 / manager=項目別の管理者 / member=一般メンバー */
+var role = "master";
+var MYITEMS = ["st","poll"];   /* デモ用：項目別管理者として持っている権限 */
+function isMaster(){ return role === "master"; }
+function canManage(item){
+  return role === "master" || (role === "manager" && MYITEMS.indexOf(item) >= 0);
+}
 var manage  = false;
 var editing = -1;
 var screenName = "home";
@@ -678,6 +688,15 @@ function dayEnd(t){ return dayStart(t).getTime() + 24*H - 1; }
 
 function enter(){ $("#s-login").hidden = true; $("#app").hidden = false; scrollTo(0,0); }
 
+function leaveApp(){
+  ask("退会すると、このアプリを利用できなくなります。退会しますか？", function(){
+    $("#app").hidden = true;
+    $("#s-login").hidden = false;
+    toast("退会しました");
+    scrollTo(0,0);
+  });
+}
+
 function go(name){
   screenName = name;
   if (name !== "home") noticeEditing = false;
@@ -701,8 +720,8 @@ function go(name){
 
 function renderTabs(){
   var items = [["home","ホーム"],["sched","イベント"],["st","ステーション"],["poll","アンケート"]];
-  if (isAdmin) items.push(["admin","管理"]);
-  if (!isAdmin && screenName === "admin") screenName = "home";
+  if (isMaster()) items.push(["admin","管理"]);
+  if (!isMaster() && screenName === "admin") screenName = "home";
   var tabs = $("#tabs");
   tabs.style.gridTemplateColumns = "repeat(" + items.length + ",1fr)";
   tabs.innerHTML = items.map(function(it){
@@ -712,9 +731,11 @@ function renderTabs(){
 }
 
 function toggleRole(){
-  isAdmin = !isAdmin;
-  manage = false; editing = -1;
-  $("#rolebtn").textContent = isAdmin ? "管理者として表示" : "メンバーとして表示";
+  role = (role === "master") ? "manager" : (role === "manager") ? "member" : "master";
+  manage = false; editing = -1; evManage = false; editNoteId = 0;
+  $("#rolebtn").textContent =
+    role === "master"  ? "マスター権限で表示" :
+    role === "manager" ? "項目別管理者で表示（ST・アンケート）" : "一般メンバーで表示";
   renderTabs();
 }
 
@@ -756,7 +777,7 @@ function renderST(){
   $("#st-lost-empty").hidden = lost.length > 0;
 
   var btn = $("#mgbtn");
-  btn.hidden = !isAdmin;
+  btn.hidden = !canManage("st");
   btn.textContent = manage ? "完了" : "管理";
   btn.classList.toggle("on", manage);
 
@@ -895,7 +916,7 @@ function renderPolls(){
   $("#past-count").textContent = past.length + "件";
   $("#past-wrap").hidden = !pastOpen;
   $("#past-toggle").textContent = pastOpen ? "▲" : "▼";
-  $("#poll-createrow").hidden = !isAdmin;
+  $("#poll-createrow").hidden = !canManage("poll");
   renderHomePolls();
 }
 function togglePast(){ pastOpen = !pastOpen; renderPolls(); }
@@ -1136,7 +1157,7 @@ function fmtAt(t){
 
 function renderNotice(){
   $("#notice-at").textContent = fmtAt(NOTICE.at);
-  $("#notice-edit").hidden = (!isAdmin || noticeEditing);
+  $("#notice-edit").hidden = (!canManage("notice") || noticeEditing);
   $("#notice-toggle").textContent = openSec.notice ? "▲" : "▼";
   var body = $("#notice-body");
   body.hidden = !openSec.notice;
@@ -1327,7 +1348,7 @@ function renderHomeEvents(){
 }
 
 function renderEvents(){
-  $("#ev-manage").hidden = !isAdmin || evManage;
+  $("#ev-manage").hidden = !canManage("event") || evManage;
   $("#ev-done").hidden = !evManage;
   $("#gantt-wrap").hidden = evManage;
   $("#ev-form").hidden = !evManage;
