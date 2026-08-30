@@ -277,6 +277,9 @@ button.ev:active{background:var(--surface-2)}
 .aggrow.on .lbl span{color:var(--gold-bright)}
 .voters{padding:7px 2px 3px; font-size:12px; color:var(--text-dim); line-height:1.9}
 .tag.warn{color:var(--warn)}
+.danger{width:100%; margin-top:22px; padding:14px; background:transparent;
+  border:1px solid var(--rule); border-radius:4px; color:var(--warn);
+  font:inherit; font-size:13px; cursor:pointer}
 .dline{display:flex; align-items:center; gap:10px; min-height:42px;
   font-size:12px; color:var(--text-dim)}
 .dline .sp{flex:1}
@@ -979,6 +982,21 @@ function openPollDetail(id){
   go("polldetail");
 }
 function pdShow(v){ pdView = v; aggOpen = -1; renderDetail(); }
+
+function pollDelBtn(p){
+  return canManage("poll")
+    ? '<button class="danger" onclick="delPoll(' + p.id + ')">このアンケートを削除する</button>' : "";
+}
+
+function delPoll(id){
+  var p = POLLS.filter(function(x){ return x.id === id; })[0];
+  ask("「" + p.t + "」を削除しますか？回答も含めて元に戻せません。", function(){
+    POLLS = POLLS.filter(function(x){ return x.id !== id; });
+    renderPolls();
+    go("poll");
+    toast("削除しました");
+  });
+}
 /* 集計状況から戻るときは、終了前なら回答画面へ戻す */
 function pdBack(){
   var p = POLLS.filter(function(x){ return x.id === pdId; })[0];
@@ -1020,7 +1038,7 @@ function renderDetail(){
     $("#pd").innerHTML = head +
       '<div class="dline"><span>終了日時 ' + dueText(p) + '</span></div>' +
       aggHtml(p) +
-      (expired ? '<p class="empty">このアンケートは終了しています</p>' : "");
+      (expired ? '<p class="empty">このアンケートは終了しています</p>' : "") + pollDelBtn(p);
     return;
   }
 
@@ -1032,7 +1050,7 @@ function renderDetail(){
     '<div class="stack" style="margin-top:16px" id="dopts">' + optionsHtml(p, "dopt") + '</div>' +
     (p.anon ? "" : '<p class="hint2" style="margin-top:12px">締切前なら何度でも変更できます。</p>') +
     '<button class="submit" id="dsend" disabled onclick="sendAnswer(' + p.id + ',false)">' +
-      (p.answered ? "回答を変更する" : "回答する") + '</button>';
+      (p.answered ? "回答を変更する" : "回答する") + '</button>' + pollDelBtn(p);
   bindOpts($("#dopts"), p, "#dsend");
 }
 
@@ -1162,6 +1180,7 @@ function renderNotice(){
       '<textarea id="ntext" maxlength="2000" rows="9" oninput="countNotice()"></textarea>' +
       '<div class="acts">' +
         '<span class="counter" id="ncount"></span>' +
+        '<button class="mini" onclick="clearNotice()">クリア</button>' +
         '<button class="mini" onclick="cancelNotice()">キャンセル</button>' +
         '<button class="mini ok" onclick="saveNotice()">保存</button>' +
       '</div>';
@@ -1195,6 +1214,12 @@ function editNotice(){
 }
 
 function cancelNotice(){ noticeEditing = false; renderNotice(); }
+
+function clearNotice(){
+  ask("入力内容をクリアしますか？", function(){
+    $("#ntext").value = ""; countNotice(); toast("クリアしました");
+  });
+}
 
 function countNotice(){
   $("#ncount").textContent = $("#ntext").value.length + " / 2000";
