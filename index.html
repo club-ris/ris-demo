@@ -25,8 +25,6 @@
   --text:#F0EBE2;
   --text-dim:#948E85;
   --warn:#D98C74;
-  --warn-rule:#8A4E3E;
-  --warn-bg:#221512;
   --serif:"Shippori Mincho","Yu Mincho","Hiragino Mincho ProN",serif;
   --sans:"Zen Kaku Gothic New","Yu Gothic UI","Hiragino Kaku Gothic ProN",sans-serif;
 }
@@ -147,8 +145,7 @@ button.row:active{background:var(--surface-2)}
 .opt.on{border-color:var(--gold-dim)}
 .tag{display:inline-block; padding:2px 8px; border-radius:2px; font-size:10.5px;
   letter-spacing:.1em; line-height:1.7; color:var(--text-dim); border:1px solid var(--rule)}
-.notice{margin-top:14px; padding:11px 13px; border-radius:4px; background:var(--warn-bg);
-  border:1px solid var(--warn-rule); font-size:12px; color:var(--warn); line-height:1.8}
+.notice{margin-top:14px; font-size:12px; color:var(--warn); line-height:1.8}
 .submit{width:100%; margin-top:18px; padding:16px; background:var(--gold); border:0;
   border-radius:4px; color:#14100A; font:inherit; font-weight:500; font-size:15px; cursor:pointer}
 .submit:disabled{background:var(--surface); color:#5A5750; cursor:default}
@@ -165,7 +162,7 @@ button.row:active{background:var(--surface-2)}
 
 /* ---- misc ---- */
 .card{padding:14px; background:var(--surface); border-radius:4px}
-.card.alert{background:var(--warn-bg); border:1px solid var(--warn-rule)}
+.card.alert{background:var(--surface)}
 .kv{display:flex; justify-content:space-between; font-size:13.5px; padding:8px 0}
 .kv+.kv{border-top:1px solid var(--rule)}
 .kv span{color:var(--text-dim)}
@@ -279,7 +276,7 @@ button.ev:active{background:var(--surface-2)}
   text-align:left; font:inherit; color:inherit; cursor:pointer}
 .aggrow.on .lbl span{color:var(--gold-bright)}
 .voters{padding:7px 2px 3px; font-size:12px; color:var(--text-dim); line-height:1.9}
-.tag.warn{color:var(--warn); border-color:var(--warn-rule)}
+.tag.warn{color:var(--warn)}
 .dline{display:flex; align-items:center; gap:10px; min-height:42px;
   font-size:12px; color:var(--text-dim)}
 .dline .sp{flex:1}
@@ -594,7 +591,7 @@ button.ev:active{background:var(--surface-2)}
       <div class="sec">
         <div class="sec-head"><h2>メンバー</h2><span class="meta">98人</span></div>
         <div class="card">
-          <div class="kv"><span>アプリ管理者</span><b>Junichi</b></div>
+          <div class="kv"><span>マスター権限</span><b>Spachan</b></div>
           <div class="kv"><span>項目別の管理者</span><b>5</b></div>
           <div class="kv"><span>一般メンバー</span><b>92</b></div>
         </div>
