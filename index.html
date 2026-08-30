@@ -45,7 +45,7 @@ body{
   padding:calc(13px + env(safe-area-inset-top)) 18px 11px;
   background:#131417; border-bottom:1px solid var(--rule);
 }
-.leave{background:none; border:0; color:var(--warn); font:inherit; font-size:12px;
+.mename{background:none; border:0; color:var(--text-dim); font:inherit; font-size:12px;
   padding:8px 6px; min-height:42px; cursor:pointer}
 .appbar h1{margin:0; flex:1; font-family:var(--serif); font-weight:500;
   font-size:18px; letter-spacing:.12em; color:var(--text)}
@@ -310,7 +310,11 @@ button.ev:active{background:var(--surface-2)}
 .modal-box{width:100%; max-width:340px; padding:18px; border-radius:6px;
   background:var(--surface); border:1px solid var(--rule)}
 .modal-box p{margin:0 0 12px; font-size:13.5px}
-.modal-box input{width:100%; margin-bottom:14px}
+.modal-box input{width:100%; padding:11px 10px; background:var(--ground);
+  border:1px solid var(--rule); border-radius:3px; color:var(--text);
+  font:inherit; font-size:14px}
+.btn.warnt{color:var(--warn)}
+.cn-err{margin:7px 0 0; color:var(--warn); font-size:11.5px}
 :focus-visible{outline:2px solid var(--gold); outline-offset:2px}
 </style>
 
@@ -334,7 +338,7 @@ button.ev:active{background:var(--surface-2)}
 
 <div id="app" hidden>
   <header class="appbar"><h1>CLUB＊RIS</h1>
-    <button class="leave" onclick="leaveApp()">退会</button>
+    <button class="mename" onclick="openMeMenu()"><span id="me-name">Spachan</span> ▾</button>
   </header>
   <div class="demobar">
     <span>デモ版 ／ データは仮のものです</span>
@@ -456,6 +460,30 @@ button.ev:active{background:var(--surface-2)}
     </section>
 
     <div class="toast" id="toast" hidden></div>
+
+    <div class="modal" id="me-modal" hidden>
+      <div class="modal-box">
+        <p id="me-title">Spachan</p>
+        <button class="btn" onclick="openChangeName()">キャラ名を変更する</button>
+        <button class="btn warnt" onclick="leaveApp()">退会する</button>
+        <div class="frow end" style="margin-top:14px">
+          <button class="mini" onclick="closeMeMenu()">閉じる</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal" id="cn-modal" hidden>
+      <div class="modal-box">
+        <p>キャラ名を変更する</p>
+        <input type="text" id="cn-input" maxlength="30" oninput="checkName()">
+        <p class="cn-err" id="cn-err" hidden>この名前は既に使われています</p>
+        <p class="anonnote">ゲーム内のキャラ名と全く違う場合、利用を一時停止することがあります。</p>
+        <div class="frow end" style="margin-top:14px">
+          <button class="mini" onclick="closeChangeName()">キャンセル</button>
+          <button class="mini ok" onclick="doChangeName()">変更する</button>
+        </div>
+      </div>
+    </div>
 
     <div class="modal" id="dlg" hidden>
       <div class="modal-box">
@@ -695,7 +723,45 @@ function dayEnd(t){ return dayStart(t).getTime() + 24*H - 1; }
 
 function enter(){ $("#s-login").hidden = true; $("#app").hidden = false; scrollTo(0,0); }
 
+/* ---- 自分のキャラ名メニュー ---- */
+var MYNAME = "Spachan";
+/* デモ用：すでに使われているキャラ名（本番はサーバーで照合する） */
+var TAKEN = ["Spachan","ユキ","カズ","ミナト","レン","ソラ","ハル","ナオ","トウマ","アオイ","リク"];
+
+function openMeMenu(){
+  $("#me-title").textContent = MYNAME;
+  $("#me-modal").hidden = false;
+}
+function closeMeMenu(){ $("#me-modal").hidden = true; }
+
+function openChangeName(){
+  closeMeMenu();
+  $("#cn-input").value = MYNAME;
+  $("#cn-err").hidden = true;
+  $("#cn-modal").hidden = false;
+  var f = $("#cn-input"); if (f) f.focus();
+}
+function closeChangeName(){ $("#cn-modal").hidden = true; }
+
+function checkName(){
+  var v = $("#cn-input").value.trim();
+  var dup = !!v && v !== MYNAME && TAKEN.indexOf(v) >= 0;
+  $("#cn-err").hidden = !dup;
+  return !dup;
+}
+
+function doChangeName(){
+  var v = $("#cn-input").value.trim();
+  if (!v){ info("キャラ名を入力してください。"); return; }
+  if (!checkName()) return;
+  MYNAME = v;
+  $("#me-name").textContent = v;
+  closeChangeName();
+  toast("キャラ名を変更しました");
+}
+
 function leaveApp(){
+  closeMeMenu();
   ask("退会すると、このアプリを利用できなくなります。退会しますか？", function(){
     $("#app").hidden = true;
     $("#s-login").hidden = false;
