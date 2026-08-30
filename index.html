@@ -162,6 +162,10 @@ button.row:active{background:var(--surface-2)}
 
 /* ---- misc ---- */
 .card{padding:14px; background:var(--surface); border-radius:4px}
+.card textarea{width:100%; padding:10px; background:var(--ground);
+  border:1px solid var(--rule); border-radius:3px; color:var(--text);
+  font:inherit; font-size:13px; line-height:1.7; resize:vertical}
+.card .acts{display:flex; gap:7px; justify-content:flex-end}
 .card.alert{background:var(--surface)}
 .kv{display:flex; justify-content:space-between; font-size:13.5px; padding:8px 0}
 .kv+.kv{border-top:1px solid var(--rule)}
@@ -193,6 +197,10 @@ button.row:active{background:var(--surface-2)}
 .acc-head .sp{flex:1}
 .accbtn{width:40px; height:40px; background:none; border:0; color:var(--text-dim);
   font:inherit; font-size:12px; cursor:pointer}
+.notice-text.clamp{display:-webkit-box; -webkit-line-clamp:4; -webkit-box-orient:vertical;
+  overflow:hidden}
+.morebtn{margin-top:8px; padding:9px 2px; background:none; border:0;
+  color:var(--gold-bright); font:inherit; font-size:12px; cursor:pointer}
 .notice-text{padding:14px; background:var(--surface); border-radius:4px;
   font-size:14px; color:#DCD6CC; white-space:pre-wrap; line-height:1.8}
 #notice-body textarea{width:100%; padding:12px; background:var(--surface);
@@ -645,8 +653,8 @@ var POLLS = [
    o:["イベントの時刻が合わない","連絡が多すぎる","連絡が少なすぎる","支援の分配が不公平","特に不満はない"]}
 ];
 var PENDING = [
-  {n:"Taro",   v:"Discord ログイン", w:"10/14 20:11"},
-  {n:"Hanako", v:"メール登録",       w:"10/14 18:02"}
+  {n:"Taro",   v:"Discord名",  id2:"taro_gg",   w:"8/30 20:11"},
+  {n:"Hanako", v:"ログインID", id2:"hanako2026", w:"8/30 18:02"}
 ];
 
 /* 権限：master=マスター権限 / manager=項目別の管理者 / member=一般メンバー */
@@ -1074,7 +1082,15 @@ function sendAnswer(id, fromHome){
 /* ================= 作成フォーム ================= */
 var pfOpts = ["", "", ""];
 
-function openPollForm(){ pfBuild(); go("pollform"); }
+function pollLiveCount(){ return POLLS.filter(function(p){ return !pollExpired(p); }).length; }
+
+function openPollForm(){
+  if (pollLiveCount() >= 20){
+    info("開催中のアンケートが20件に達しています。どれかが終了するまで、新しいアンケートは作成できません。");
+    return;
+  }
+  pfBuild(); go("pollform");
+}
 function closePollForm(){ go("poll"); }
 
 function pfBuild(){
@@ -1144,6 +1160,10 @@ function pfSubmit(){
     info("朱色の * が付いた項目を入力してください。選択肢は2つ以上必要です。"); return;
   }
   if (due <= Date.now()){ info("終了日時が過去になっています。"); return; }
+  if (pollLiveCount() >= 20){
+    info("開催中のアンケートが20件に達しています。どれかが終了するまで、新しいアンケートは作成できません。");
+    return;
+  }
   ask("この内容でアンケートを作成しますか？", function(){
     var p = {id:pollSeq++, t:t, d:$("#pf-d").value, o:o, multi:(multi==="1"), anon:(anon==="1"),
              due:due, answered:false, my:[], cnt:o.map(function(){ return 0; })};
@@ -1163,6 +1183,7 @@ var NOTICE = {
 };
 var openSec = { notice: true, st: true };
 var noticeEditing = false;
+var noticeFull = false;
 
 function fmtAt(t){
   var d = new Date(t);
@@ -1186,12 +1207,22 @@ function renderNotice(){
       '</div>';
     $("#ntext").value = NOTICE.text;
     countNotice();
-  } else {
-    body.innerHTML = NOTICE.text.trim()
-      ? '<div class="notice-text">' + esc(NOTICE.text) + '</div>'
-      : '<div class="notice-text" style="color:var(--text-dim)">お知らせはありません。</div>';
+    return;
   }
+  var t = NOTICE.text.trim();
+  if (!t){
+    body.innerHTML = '<div class="notice-text" style="color:var(--text-dim)">お知らせはありません。</div>';
+    return;
+  }
+  /* 長いお知らせは4行で省略し、ダッシュボードを押し下げないようにする */
+  var long = (t.length > 90 || t.split("\n").length > 4);
+  body.innerHTML =
+    '<div class="notice-text' + (long && !noticeFull ? " clamp" : "") + '">' + esc(NOTICE.text) + '</div>' +
+    (long ? '<button class="morebtn" onclick="toggleNoticeFull()">' +
+            (noticeFull ? "閉じる" : "続きを読む") + '</button>' : "");
 }
+
+function toggleNoticeFull(){ noticeFull = !noticeFull; renderNotice(); }
 
 function renderSTSection(){
   $("#st-wrap").hidden = !openSec.st;
@@ -1370,7 +1401,14 @@ function renderHomeEvents(){
   $("#home-ev-empty").hidden = list.length > 0;
 }
 
+/* 終了した開催予定は残さない（イベント名の記憶は残る） */
+function trimEvents(){
+  var today = dayKey(Date.now());
+  SCHED = SCHED.filter(function(o){ return dayKey(o.e) >= today; });
+}
+
 function renderEvents(){
+  trimEvents();
   $("#ev-manage").hidden = !canManage("event") || evManage;
   $("#ev-done").hidden = !evManage;
   $("#gantt-wrap").hidden = evManage;
@@ -1400,6 +1438,7 @@ function renderGantt(){
   SCHED.forEach(function(o){ if (dayKey(o.e) > last) last = dayKey(o.e); });
   var days = Math.round((last - today) / (24*H)) + 1;
   if (days < 7) days = 7;
+  if (days > 60) days = 60;   /* 遠い予定で横に伸びすぎないよう上限を設ける */
   var W = 42, LBL = 132;
 
   var head = '<div class="g-row g-head"><div class="g-lbl">イベント</div><div class="g-cells">';
@@ -1617,6 +1656,7 @@ function submitEvent(){
   var name = formName(), s = dtOf("s"), e = dtOf("e"), mode = modeVal();
   if (!name || s === null || e === null || !mode){ info("朱色の * が付いた項目を入力してください。"); return; }
   if (e <= s){ info("終了日時が開始日時より前になっています。"); return; }
+  if (dayKey(e) < dayKey(Date.now())){ info("終了日時が過去になっています。"); return; }
   ask("この内容でイベントを登録しますか？", function(){
     var note = $("#f-note").value;
     var m = mEM(name);
@@ -1654,20 +1694,52 @@ function doRename(){
   toast("イベント名を変更しました");
 }
 
+var rejectIdx = -1;
+
 function renderPending(){
   $("#pending").innerHTML = PENDING.map(function(p,i){
-    return '<div class="card alert"><div style="font-size:17px">' + esc(p.n) + '</div>' +
-      '<div style="font-size:12px;color:var(--text-dim);margin-top:3px">' +
-        esc(p.v) + '　' + esc(p.w) + '</div>' +
-      '<div style="display:flex;gap:8px;margin-top:11px">' +
-        '<button class="approve yes" onclick="decide(' + i + ')">承認</button>' +
-        '<button class="approve" onclick="decide(' + i + ')">却下</button></div></div>';
+    var h = '<div class="card">' +
+      '<div style="font-size:10.5px;color:var(--text-dim)">ゲーム内キャラ名</div>' +
+      '<div style="font-size:18px;font-family:var(--serif);margin:2px 0 8px">' + esc(p.n) + '</div>' +
+      '<div class="kv"><span>' + esc(p.v) + '</span><b>' + esc(p.id2) + '</b></div>' +
+      '<div class="kv"><span>申請日時</span><b>' + esc(p.w) + '</b></div>';
+    if (rejectIdx === i){
+      h += '<div style="margin-top:12px">' +
+        '<div style="font-size:11px;color:var(--text-dim);margin-bottom:6px">却下の理由（本人に表示されます）</div>' +
+        '<textarea id="rej" rows="2" maxlength="100" placeholder="キャラ名が同盟内に見当たりません"></textarea>' +
+        '<div class="acts" style="margin-top:8px">' +
+          '<button class="mini" onclick="cancelReject()">キャンセル</button>' +
+          '<button class="mini ok" onclick="doReject(' + i + ')">却下する</button>' +
+        '</div></div>';
+    } else {
+      h += '<div style="display:flex;gap:8px;margin-top:12px">' +
+        '<button class="approve yes" onclick="approve(' + i + ')">承認</button>' +
+        '<button class="approve" onclick="startReject(' + i + ')">却下</button></div>' +
+        '<div style="font-size:10px;color:#6C675F;margin-top:8px">ゲーム内チャットで本人に確認してから承認します</div>';
+    }
+    return h + '</div>';
   }).join("");
   $("#pend-empty").hidden = PENDING.length > 0;
   $("#pend-count").textContent = PENDING.length + "人";
 }
-function decide(i){ PENDING.splice(i,1); renderPending(); }
 
+function approve(i){
+  var n = PENDING[i].n;
+  PENDING.splice(i,1); rejectIdx = -1;
+  renderPending(); toast("「" + n + "」を承認しました");
+}
+function startReject(i){
+  rejectIdx = i; renderPending();
+  var t = $("#rej"); if (t) t.focus();
+}
+function cancelReject(){ rejectIdx = -1; renderPending(); }
+function doReject(i){
+  var r = $("#rej").value.trim();
+  if (!r){ info("却下の理由を入力してください。本人に表示されます。"); return; }
+  var n = PENDING[i].n;
+  PENDING.splice(i,1); rejectIdx = -1;
+  renderPending(); toast("「" + n + "」を却下しました");
+}
 function tick(){
   var t = Date.now();
   var moved = false;
