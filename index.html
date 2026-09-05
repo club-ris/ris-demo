@@ -90,6 +90,9 @@ button.row:active{background:var(--surface-2)}
 .st .sub{font-size:12px; color:var(--text-dim); margin-top:1px}
 .st .cd{font-family:var(--serif); font-size:17px; color:var(--gold-bright);
   font-variant-numeric:tabular-nums; white-space:nowrap}
+.cdwrap{flex:0 0 auto; text-align:right}
+.cdat{margin-top:2px; font-size:11px; color:var(--text);
+  font-variant-numeric:tabular-nums; white-space:nowrap}
 .st .acts{display:flex; gap:7px; justify-content:flex-end}
 .mini{padding:6px 13px; min-height:34px; border-radius:3px; cursor:pointer;
   font:inherit; font-size:12.5px; background:transparent;
@@ -804,10 +807,12 @@ function toggleRole(){
 }
 
 function toggleManage(){ manage = !manage; editing = -1; renderST(); }
-
 function stRow(i, held){
   var s = ST[i];
-  var cd = held ? '<div class="cd" data-e="' + i + '">' + fmt(s.e - Date.now()) + '</div>' : "";
+  var cd = held
+    ? '<div class="cdwrap"><div class="cd" data-e="' + i + '">' + fmt(s.e - Date.now()) + '</div>' +
+      '<div class="cdat">' + fmtEnd(s.e) + '</div></div>'
+    : "";
   var head = '<div class="line1"><div class="body"><div class="ttl">' + esc(s.n) +
              '</div><div class="sub">' + esc(s.b) + '</div></div>' + cd + '</div>';
   var cls = '<div class="st">';
@@ -850,7 +855,8 @@ function renderST(){
   $("#home-st").innerHTML = todays.map(function(i){
     return '<div class="row"><div class="body"><div class="ttl">' + esc(ST[i].n) +
       '</div><div class="sub">' + esc(ST[i].b) + '</div></div>' +
-      '<div class="cd" data-e="' + i + '">' + fmt(ST[i].e - Date.now()) + '</div></div>';
+      '<div class="cdwrap"><div class="cd" data-e="' + i + '">' + fmt(ST[i].e - Date.now()) + '</div>' +
+      '<div class="cdat">' + fmtEnd(ST[i].e) + '</div></div></div>';
   }).join("");
   $("#home-st-empty").hidden = todays.length > 0;
 }
@@ -1423,6 +1429,11 @@ function evTime(o){
   return o.mode === "range"
     ? '<div class="tr">' + fmtMD(o.s) + " " + fmtHM(o.s) + " 〜 " + fmtMD(o.e) + " " + fmtHM(o.e) + '</div>'
     : '<div class="ts">' + fmtHM(o.s) + '</div>';
+}
+/* カウントダウンが0になる日時（秒は切り捨て） */
+function fmtEnd(ms){
+  var d = new Date(ms);
+  return (d.getMonth()+1) + "/" + d.getDate() + " " + d.getHours() + ":" + p2(d.getMinutes());
 }
 function dayKey(ms){ return dayStart(ms).getTime(); }
 function onDay(o, d){ return o.s <= d + 24*H - 1 && o.e >= d; }
