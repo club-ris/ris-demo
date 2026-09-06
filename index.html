@@ -319,6 +319,31 @@ button.ev:active{background:var(--surface-2)}
   font:inherit; font-size:14px}
 .btn.warnt{color:var(--warn)}
 .cn-err{margin:7px 0 0; color:var(--warn); font-size:11.5px}
+.ntbtn{display:block; width:100%; padding:0; background:none; border:0;
+  text-align:left; font:inherit; color:inherit; cursor:pointer}
+.thumbs{display:flex; gap:6px; flex-wrap:wrap}
+.thumb{width:56px; height:44px; padding:0; border-radius:3px; overflow:hidden;
+  background:var(--surface-2); border:1px solid var(--rule); cursor:pointer}
+.thumb img{width:100%; height:100%; object-fit:cover; display:block}
+.thumb .pdf{display:flex; align-items:center; justify-content:center; width:100%;
+  height:100%; font-size:10px; color:var(--text-dim)}
+.filepanel{display:flex; flex-direction:column; gap:6px}
+.frow2{display:flex; align-items:center; gap:8px; padding:8px 10px;
+  background:var(--surface-2); border-radius:3px}
+.frow2 .fn{flex:1; min-width:0; font-size:12px; overflow:hidden;
+  text-overflow:ellipsis; white-space:nowrap}
+.fempty{padding:10px; font-size:11.5px; color:#6C675F}
+#viewer{z-index:70}
+#viewer .modal-box{max-width:none; width:100%; height:100%; padding:0;
+  background:var(--ground); border:0; display:flex; flex-direction:column}
+.viewer-top{display:flex; align-items:center; gap:10px; padding:12px 14px;
+  border-bottom:1px solid var(--rule)}
+.viewer-top span{flex:1; min-width:0; font-size:13px; overflow:hidden;
+  text-overflow:ellipsis; white-space:nowrap}
+.viewer-body{flex:1; overflow:auto; display:flex; align-items:center;
+  justify-content:center; padding:10px}
+.viewer-body img{max-width:100%; height:auto; display:block}
+.vpdf{font-size:12.5px; color:var(--text-dim); text-align:center; line-height:2}
 :focus-visible{outline:2px solid var(--gold); outline-offset:2px}
 </style>
 
@@ -462,6 +487,16 @@ button.ev:active{background:var(--surface-2)}
         <p class="empty" id="ev-empty" hidden>登録されたイベントはありません</p>
       </div>
     </section>
+
+    <input type="file" id="fileinput" multiple accept="image/*,application/pdf" hidden onchange="onFiles(this)">
+
+    <div class="modal" id="viewer" hidden>
+      <div class="modal-box">
+        <div class="viewer-top"><span id="viewer-name"></span>
+          <button class="mini" onclick="closeViewer()">閉じる</button></div>
+        <div class="viewer-body" id="viewer-body"></div>
+      </div>
+    </div>
 
     <div class="toast" id="toast" hidden></div>
 
@@ -771,7 +806,7 @@ function go(name){
   screenName = name;
   if (name !== "home") noticeEditing = false;
   if (name !== "st"){ manage = false; editing = -1; }
-  if (name !== "sched"){ evManage = false; editNoteId = 0; }
+  if (name !== "sched"){ evManage = false; editNoteId = 0; editFileId = 0; }
   ["home","sched","st","poll","polldetail","pollform","admin"].forEach(function(k){
     var el = $("#s-" + k); if (el) el.hidden = (k !== name);
   });
@@ -802,7 +837,7 @@ function renderTabs(){
 
 function toggleRole(){
   role = (role === "master") ? "manager" : (role === "manager") ? "member" : "master";
-  manage = false; editing = -1; evManage = false; editNoteId = 0;
+  manage = false; editing = -1; evManage = false; editNoteId = 0; editFileId = 0;
   $("#rolebtn").textContent =
     role === "master"  ? "マスター権限で表示" :
     role === "manager" ? "項目別管理者で表示（ST・アンケート）" : "一般メンバーで表示";
@@ -1403,6 +1438,39 @@ var EM = [
     EM.push({n:j+"号要塞", y:"ようさい"+p2(j), sh:null, sm:null, eh:null, em:null, mode:"start", note:""});
 })();
 
+/* デモ用のサンプル作戦図（実際は幹部が作った画像やPDFを添付します） */
+var SAMPLE_MAP = "data:image/svg+xml;utf8," + encodeURIComponent(
+  '<svg xmlns="http://www.w3.org/2000/svg" width="480" height="300">' +
+  '<rect width="480" height="300" fill="#241D26"/>' +
+  '<path d="M24 30 Q140 18 260 24 Q400 30 460 26 L466 280 Q300 292 150 286 Q60 282 20 276 Z" fill="#3B2E3E"/>' +
+  '<path d="M46 156 l14 -10 14 10 -14 10 z" fill="#4478A8" stroke="#5B9BD5"/>' +
+  '<text x="60" y="186" fill="#9DC3E6" font-size="11" text-anchor="middle">自陣</text>' +
+  '<path d="M406 156 l14 -10 14 10 -14 10 z" fill="#6A4444" stroke="#8A5A5A"/>' +
+  '<text x="420" y="186" fill="#B58080" font-size="11" text-anchor="middle">敵陣</text>' +
+  '<g text-anchor="middle" font-size="11">' +
+  '<circle cx="150" cy="70" r="7" fill="#1B2233" stroke="#8FA0C0"/><text x="150" y="90" fill="#C8D0DA">ボイラー</text>' +
+  '<circle cx="290" cy="64" r="7" fill="#1B2233" stroke="#8FA0C0"/><text x="290" y="84" fill="#C8D0DA">④修理</text>' +
+  '<circle cx="228" cy="110" r="7" fill="#1B2233" stroke="#8FA0C0"/><text x="228" y="130" fill="#C8D0DA">野営地</text>' +
+  '<circle cx="126" cy="140" r="7" fill="#1B2233" stroke="#8FA0C0"/><text x="126" y="160" fill="#C8D0DA">①試験</text>' +
+  '<circle cx="240" cy="164" r="9" fill="#2A2033" stroke="#C69B5F"/><text x="240" y="186" fill="#E0BE86">王室</text>' +
+  '<circle cx="366" cy="148" r="7" fill="#1B2233" stroke="#8FA0C0"/><text x="366" y="168" fill="#C8D0DA">②修理</text>' +
+  '<circle cx="88" cy="196" r="7" fill="#1B2233" stroke="#8FA0C0"/><text x="88" y="216" fill="#C8D0DA">①修理</text>' +
+  '<circle cx="336" cy="204" r="7" fill="#1B2233" stroke="#8FA0C0"/><text x="336" y="224" fill="#C8D0DA">②試験</text>' +
+  '<circle cx="228" cy="230" r="7" fill="#1B2233" stroke="#8FA0C0"/><text x="228" y="250" fill="#C8D0DA">倉庫</text>' +
+  '<circle cx="146" cy="256" r="7" fill="#1B2233" stroke="#8FA0C0"/><text x="146" y="276" fill="#C8D0DA">③修理</text>' +
+  '<circle cx="302" cy="258" r="7" fill="#1B2233" stroke="#8FA0C0"/><text x="302" y="278" fill="#C8D0DA">中継所</text>' +
+  '</g>' +
+  '<g font-size="10" text-anchor="middle">' +
+  '<rect x="96" y="46" width="52" height="16" rx="2" fill="#3A2A1C" stroke="#C69B5F"/><text x="122" y="58" fill="#E0BE86">ねじりん</text>' +
+  '<rect x="262" y="40" width="44" height="16" rx="2" fill="#3A2A1C" stroke="#C69B5F"/><text x="284" y="52" fill="#E0BE86">RIZE</text>' +
+  '<rect x="84" y="116" width="52" height="16" rx="2" fill="#3A2A1C" stroke="#C69B5F"/><text x="110" y="128" fill="#E0BE86">OROCH</text>' +
+  '<rect x="192" y="140" width="44" height="16" rx="2" fill="#3A2A1C" stroke="#C69B5F"/><text x="214" y="152" fill="#E0BE86">かぼす</text>' +
+  '<rect x="340" y="124" width="40" height="16" rx="2" fill="#3A2A1C" stroke="#C69B5F"/><text x="360" y="136" fill="#E0BE86">Ruru</text>' +
+  '<rect x="252" y="206" width="52" height="16" rx="2" fill="#3A2A1C" stroke="#C69B5F"/><text x="278" y="218" fill="#E0BE86">すんすん</text>' +
+  '</g>' +
+  '<text x="16" y="20" fill="#F0EBE2" font-size="12">初回報酬フェーズ ／ 集結主の配置</text>' +
+  '</svg>');
+
 var SCHED = [];
 var evSeq = 1;
 var evManage = false;
@@ -1416,13 +1484,14 @@ function mEM(n){ return EM.filter(function(x){ return x.n === n; })[0]; }
 (function(){
   var d0 = dayStart(Date.now()).getTime();
   function at(o, h, m){ var d = new Date(d0); d.setDate(d.getDate()+o); d.setHours(h,m,0,0); return d.getTime(); }
-  function add(n, s, e, note){
-    SCHED.push({id:evSeq++, n:n, s:s, e:e, mode:mEM(n).mode, note:note || ""});
+  function add(n, s, e, note, files){
+    SCHED.push({id:evSeq++, n:n, s:s, e:e, mode:mEM(n).mode, note:note || "", files:files || []});
   }
   add("全軍参戦",        at(0,9,0),   at(2,8,59));
   add("熊狩行動①",      at(0,21,0),  at(0,21,30));
   add("熊狩行動②",      at(0,22,30), at(0,23,0));
-  add("王城決戦",        at(1,20,0),  at(2,2,0), "主力は20時集合。遅れる場合は事前に連絡してください。装備の確認も忘れずに。");
+  add("王城決戦",        at(1,20,0),  at(2,2,0), "主力は20時集合。遅れる場合は事前に連絡してください。装備の確認も忘れずに。",
+      [{n:"作戦図（初回報酬）.svg", t:"image/svg+xml", u:SAMPLE_MAP}]);
   add("峡谷合戦（一軍）", at(1,23,0),  at(2,0,0));
   add("1号砦",           at(2,21,0),  at(2,21,30), "今回は南側から攻めます。");
   add("SvS（準備F）",    at(3,9,0),   at(3,19,0));
@@ -1445,28 +1514,107 @@ function fmtEnd(ms){
 function dayKey(ms){ return dayStart(ms).getTime(); }
 function onDay(o, d){ return o.s <= d + 24*H - 1 && o.e >= d; }
 
+var editFileId = 0;      /* 添付を編集中の開催予定 */
+var fileTarget = 0;      /* ファイル選択の対象 */
+var MAXFILES = 5;
+
 function evRow(o, forHome){
-  var inner =
-    '<div class="l1"><div class="nm">' + esc(o.n) + '</div>' + evTime(o) + '</div>' +
-    (o.note ? '<div class="nt">' + esc(o.note) + '</div>' : "");
   var cls = "ev" + (noteOpen[o.id] ? " open" : "");
+  var h = '<div class="' + cls + '">' +
+    '<div class="l1"><div class="nm">' + esc(o.n) + '</div>' + evTime(o) + '</div>';
+
+  if (o.note)
+    h += '<button class="ntbtn" onclick="toggleNote(' + o.id + ')">' +
+         '<span class="nt">' + esc(o.note) + '</span></button>';
+
+  var fs = o.files || [];
+  if (fs.length)
+    h += '<div class="thumbs">' + fs.map(function(f,i){
+      return '<button class="thumb" onclick="openViewer(' + o.id + ',' + i + ')">' +
+        (f.t.indexOf("image") === 0
+          ? '<img src="' + f.u + '" alt="">'
+          : '<span class="pdf">PDF</span>') + '</button>';
+    }).join("") + '</div>';
 
   if (!forHome && evManage){
     if (editNoteId === o.id){
-      return '<div class="' + cls + '">' + inner +
-        '<textarea id="nedit" maxlength="200" rows="3"></textarea>' +
+      h += '<textarea id="nedit" maxlength="200" rows="3"></textarea>' +
         '<div class="acts"><button class="mini" onclick="cancelEvNote()">キャンセル</button>' +
-        '<button class="mini ok" onclick="saveEvNote(' + o.id + ')">保存</button></div></div>';
+        '<button class="mini ok" onclick="saveEvNote(' + o.id + ')">保存</button></div>';
+    } else if (editFileId === o.id){
+      h += '<div class="filepanel">' +
+        (fs.length
+          ? fs.map(function(f,i){
+              return '<div class="frow2"><span class="fn">' + esc(f.n) + '</span>' +
+                '<button class="mini" onclick="delFile(' + o.id + ',' + i + ')">×</button></div>';
+            }).join("")
+          : '<div class="fempty">まだ添付はありません</div>') +
+        '<div class="acts">' +
+          (fs.length < MAXFILES
+            ? '<button class="mini go" onclick="pickFiles(' + o.id + ')">ファイルを追加</button>'
+            : '<span class="u">上限' + MAXFILES + '件です</span>') +
+          '<button class="mini ok" onclick="closeFiles()">完了</button>' +
+        '</div></div>';
+    } else {
+      h += '<div class="acts">' +
+        '<button class="mini" onclick="editEvFiles(' + o.id + ')">添付' +
+          (fs.length ? '（' + fs.length + '）' : '') + '</button>' +
+        '<button class="mini" onclick="editEvNote(' + o.id + ')">備考</button>' +
+        '<button class="mini" onclick="delOcc(' + o.id + ')">削除</button>' +
+      '</div>';
     }
-    return '<div class="' + cls + '">' + inner +
-      '<div class="acts"><button class="mini" onclick="editEvNote(' + o.id + ')">備考</button>' +
-      '<button class="mini" onclick="delOcc(' + o.id + ')">削除</button></div></div>';
   }
-  if (o.note)
-    return '<button class="' + cls + '" onclick="toggleNote(' + o.id + ')">' + inner + '</button>';
-  return '<div class="' + cls + '">' + inner + '</div>';
+  return h + '</div>';
 }
 
+function editEvFiles(id){ editFileId = id; editNoteId = 0; renderEvents(); }
+function closeFiles(){ editFileId = 0; renderEvents(); }
+
+function pickFiles(id){
+  fileTarget = id;
+  var inp = $("#fileinput");
+  inp.value = "";
+  inp.click();
+}
+
+function onFiles(inp){
+  var o = SCHED.filter(function(x){ return x.id === fileTarget; })[0];
+  if (!o) return;
+  if (!o.files) o.files = [];
+  var list = Array.prototype.slice.call(inp.files);
+  var over = false;
+  list.forEach(function(f){
+    if (o.files.length >= MAXFILES){ over = true; return; }
+    if (f.size > 5*1024*1024){ info("「" + f.name + "」は5MBを超えています。"); return; }
+    o.files.push({n:f.name, t:f.type, u:""});
+    var idx = o.files.length - 1;
+    var r = new FileReader();
+    r.onload = function(e){ o.files[idx].u = e.target.result; renderEvents(); renderHomeEvents(); };
+    r.readAsDataURL(f);
+  });
+  if (over) info("添付できるのは" + MAXFILES + "件までです。");
+  renderEvents();
+}
+
+function delFile(id, i){
+  var o = SCHED.filter(function(x){ return x.id === id; })[0];
+  ask("「" + o.files[i].n + "」を削除しますか？", function(){
+    o.files.splice(i,1);
+    renderEvents(); renderHomeEvents();
+    toast("削除しました");
+  });
+}
+
+function openViewer(id, i){
+  var o = SCHED.filter(function(x){ return x.id === id; })[0];
+  var f = o.files[i];
+  $("#viewer-name").textContent = f.n;
+  $("#viewer-body").innerHTML = (f.t.indexOf("image") === 0)
+    ? '<img src="' + f.u + '" alt="">'
+    : '<div class="vpdf">PDFはこの画面では表示できません。<br>本番では別画面で開きます。</div>';
+  $("#viewer").hidden = false;
+}
+function closeViewer(){ $("#viewer").hidden = true; $("#viewer-body").innerHTML = ""; }
 function toggleNote(id){ noteOpen[id] = !noteOpen[id]; renderEvents(); renderHomeEvents(); }
 
 function renderHomeEvents(){
@@ -1557,10 +1705,11 @@ function formDirty(){
 }
 function toggleEvManage(){
   if (evManage && formDirty()){
-    ask("入力中の内容が残っています。管理を終了しますか？", function(){ evManage = false; editNoteId = 0; renderEvents(); });
+    ask("入力中の内容が残っています。管理を終了しますか？", function(){ evManage = false; editNoteId = 0; editFileId = 0; renderEvents(); });
     return;
   }
   evManage = !evManage;
+  editFileId = 0;
   editNoteId = 0;
   if (evManage) buildForm();
   renderEvents();
@@ -1740,7 +1889,7 @@ function submitEvent(){
     m.sh = sd.getHours(); m.sm = sd.getMinutes();
     m.eh = ed.getHours(); m.em = ed.getMinutes();
     m.mode = mode; m.note = note;
-    SCHED.push({id:evSeq++, n:name, s:s, e:e, mode:mode, note:note});
+    SCHED.push({id:evSeq++, n:name, s:s, e:e, mode:mode, note:note, files:[]});
     clearFormSilent();
     renderEvents(); renderHomeEvents();
     toast("登録完了");
