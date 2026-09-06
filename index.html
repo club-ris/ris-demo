@@ -659,19 +659,22 @@ button.ev:active{background:var(--surface-2)}
 var H = 3600e3, MIN = 60e3;
 var now0 = Date.now();
 
+/* h = 占領中かどうか / e = カウントダウンの終了時刻（null はカウントなし）
+   占領中の e … 解放されるまでの時間
+   未占領の e … 保護状態が解けて争奪可能になるまでの時間        */
 var ST = [
-  {n:"レベル1採集", b:"資源採集速度 +5.0%",  e: now0 + 2*H + 15*MIN},
-  {n:"レベル1生産", b:"資源生産速度 +5.0%",  e: now0 + 18*H},
-  {n:"レベル1技術", b:"研究速度 +5.0%",      e: now0 + 28*H},
-  {n:"レベル3技術", b:"研究速度 +8.0%",      e: now0 + 44*H},
-  {n:"レベル1建築", b:"建築速度 +5.0%",      e: null},
-  {n:"レベル3建築", b:"建築速度 +8.0%",      e: now0 + 5*H + 40*MIN},
-  {n:"レベル2訓練", b:"訓練速度 +5.0%",      e: now0 + 51*H},
-  {n:"レベル2武器", b:"部隊攻撃力 +5.0%",    e: now0 + 9*H + 3*MIN},
-  {n:"レベル4武器", b:"部隊攻撃力 +8.0%",    e: null},
-  {n:"レベル2防御", b:"部隊防御力 +5.0%",    e: now0 + 4*MIN},
-  {n:"レベル4防御", b:"部隊防御力 +8.0%",    e: now0 + 34*H + 23*MIN + 46e3},
-  {n:"レベル3遠征", b:"部隊出征速度 +15.0%", e: now0 + 40*H}
+  {n:"レベル1採集", b:"資源採集速度 +5.0%",  h:true,  e: now0 + 2*H + 15*MIN},
+  {n:"レベル1生産", b:"資源生産速度 +5.0%",  h:true,  e: now0 + 18*H},
+  {n:"レベル1技術", b:"研究速度 +5.0%",      h:true,  e: now0 + 28*H},
+  {n:"レベル3技術", b:"研究速度 +8.0%",      h:true,  e: now0 + 44*H},
+  {n:"レベル1建築", b:"建築速度 +5.0%",      h:false, e: now0 + 6*H + 40*MIN},
+  {n:"レベル3建築", b:"建築速度 +8.0%",      h:true,  e: now0 + 5*H + 40*MIN},
+  {n:"レベル2訓練", b:"訓練速度 +5.0%",      h:true,  e: now0 + 51*H},
+  {n:"レベル2武器", b:"部隊攻撃力 +5.0%",    h:true,  e: now0 + 9*H + 3*MIN},
+  {n:"レベル4武器", b:"部隊攻撃力 +8.0%",    h:false, e: null},
+  {n:"レベル2防御", b:"部隊防御力 +5.0%",    h:true,  e: now0 + 4*MIN},
+  {n:"レベル4防御", b:"部隊防御力 +8.0%",    h:true,  e: now0 + 34*H + 23*MIN + 46e3},
+  {n:"レベル3遠征", b:"部隊出征速度 +15.0%", h:true,  e: now0 + 40*H}
 ];
 
 var PENDING = [
@@ -807,9 +810,9 @@ function toggleRole(){
 }
 
 function toggleManage(){ manage = !manage; editing = -1; renderST(); }
-function stRow(i, held){
+function stRow(i){
   var s = ST[i];
-  var cd = held
+  var cd = (s.e !== null)
     ? '<div class="cdwrap"><div class="cd" data-e="' + i + '">' + fmt(s.e - Date.now()) + '</div>' +
       '<div class="cdat">' + fmtEnd(s.e) + '</div></div>'
     : "";
@@ -832,16 +835,17 @@ function stRow(i, held){
 
   return cls + head + '<div class="acts">' +
     '<button class="mini go" onclick="startEdit(' + i + ')">更新</button>' +
-    (held ? '<button class="mini" onclick="release(' + i + ')">未占領</button>' : "") +
+    (s.h ? '<button class="mini" onclick="release(' + i + ')">未占領</button>'
+         : '<button class="mini" onclick="occupy(' + i + ')">占領</button>') +
     '</div></div>';
 }
 
 function renderST(){
   var held = [], lost = [];
-  ST.forEach(function(s,i){ (s.e === null ? lost : held).push(i); });
+  ST.forEach(function(s,i){ (s.h ? held : lost).push(i); });
 
-  $("#st-held").innerHTML = held.map(function(i){ return stRow(i,true); }).join("");
-  $("#st-lost").innerHTML = lost.map(function(i){ return stRow(i,false); }).join("");
+  $("#st-held").innerHTML = held.map(stRow).join("");
+  $("#st-lost").innerHTML = lost.map(stRow).join("");
   $("#st-held-empty").hidden = held.length > 0;
   $("#st-lost-empty").hidden = lost.length > 0;
 
@@ -850,10 +854,13 @@ function renderST(){
   btn.textContent = manage ? "完了" : "管理";
   btn.classList.toggle("on", manage);
 
+  /* ホームには、当日中にカウントが終わるものだけを出す（占領中・未占領の両方） */
   var limit = dayEnd(Date.now());
-  var todays = held.filter(function(i){ return ST[i].e <= limit; });
+  var todays = [];
+  ST.forEach(function(s,i){ if (s.e !== null && s.e <= limit) todays.push(i); });
   $("#home-st").innerHTML = todays.map(function(i){
     return '<div class="row"><div class="body"><div class="ttl">' + esc(ST[i].n) +
+      (ST[i].h ? "" : ' <span class="tag">未占領</span>') +
       '</div><div class="sub">' + esc(ST[i].b) + '</div></div>' +
       '<div class="cdwrap"><div class="cd" data-e="' + i + '">' + fmt(ST[i].e - Date.now()) + '</div>' +
       '<div class="cdat">' + fmtEnd(ST[i].e) + '</div></div></div>';
@@ -862,7 +869,8 @@ function renderST(){
 }
 
 function startEdit(i){ editing = i; renderST(); var f = $("#ed"); if (f) f.focus(); }
-function release(i){ ST[i].e = null; editing = -1; renderST(); }
+function release(i){ ST[i].h = false; ST[i].e = null; editing = -1; renderST(); }
+function occupy(i){ ST[i].h = true; ST[i].e = null; editing = -1; renderST(); }
 
 function commit(i){
   function v(id){ return Math.max(0, parseInt($("#" + id).value, 10) || 0); }
@@ -871,7 +879,6 @@ function commit(i){
   editing = -1;
   renderST();
 }
-
 function cancelEdit(){ editing = -1; renderST(); }
 
 
@@ -1811,7 +1818,14 @@ function doReject(i){
 function tick(){
   var t = Date.now();
   var moved = false;
-  ST.forEach(function(s){ if (s.e !== null && s.e <= t){ s.e = null; moved = true; } });
+  ST.forEach(function(s){
+    if (s.e !== null && s.e <= t){
+      /* 占領中なら未占領へ移す。未占領ならカウントを消すだけ（争奪可能になった） */
+      if (s.h) s.h = false;
+      s.e = null;
+      moved = true;
+    }
+  });
   if (moved){
     if (editing >= 0 && ST[editing].e === null) editing = -1;
     renderST();
